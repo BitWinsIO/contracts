@@ -20,10 +20,15 @@ contract BWLottery is BWManaged {
         uint256 collectedEthers;
         uint256[2] contributionRange;
         mapping(address => uint256[]) contributors;
-        mapping(uint256 => address[]) bids; //(for  5 numbers)
-        mapping(uint256 => address[]) bidsWithPowerball; //(for  6 numbers)
+        mapping(uint256 => Bids) bids;
     }
 
+    struct Bids {
+        mapping(uint256 => address[]) bidToAddress;
+        address[] bidders;
+        mapping(address => uint256[]) addressToBid;
+        mapping(address => bool) payoutsSet; //addressId => set
+    }
 
     constructor(
         address _management,
@@ -46,9 +51,9 @@ contract BWLottery is BWManaged {
 
         uint256[2] memory numbers = encode(_input);
         require((numbers[0] != 0 && numbers[1] != 0), WRONG_AMOUNT);
-
-        lottery.bids[numbers[0]].push(msg.sender);
-        lottery.bidsWithPowerball[numbers[1]].push(msg.sender);
+        Bids storage bid = lottery.bids[numbers[0]];
+        bid.bidToAddress[numbers[0]].push(msg.sender);
+        bid.bidders.push(msg.sender);
         lottery.collectedEthers = lottery.collectedEthers.add(msg.value);
         lottery.contributors[msg.sender].push(msg.value);
 
@@ -57,15 +62,47 @@ contract BWLottery is BWManaged {
 
     }
 
-    function setGameResult(uint256 _gameId, uint8[6] _input) public requireRegisteredContract(CASHIER)
-    returns (address[], address[]){
+    function setGameResult(uint256 _gameId, uint8[6] _input) public requireRegisteredContract(CASHIER) {
         require(msg.sender == management.contractRegistry(RESULTS), ACCESS_DENIED);
         require(_gameId.add(GAME_DURATION) <= block.timestamp, ACCESS_DENIED);
         Game storage lottery = lotteries[_gameId];
         uint256[2] memory numbers = encode(_input);
         require((numbers[0] != 0 && numbers[1] != 0), WRONG_AMOUNT);
         lottery.result = numbers[1];
-        return (lottery.bids[numbers[0]], lottery.bidsWithPowerball[numbers[1]]);
+    }
+
+    //  winner  range to avoid  out of gas error
+    // - [0,0] - not run;
+    // - [a,b] - run from a to b; a - included  if b is gather than length run to length
+    function setPurchase(uint256 _gameId, uint256[2] _range) public requireRegisteredContract(CASHIER) {
+        require(msg.sender == management.contractRegistry(RESULTS), ACCESS_DENIED);
+        require(_gameId.add(GAME_DURATION) <= block.timestamp, ACCESS_DENIED);
+        Game storage lottery = lotteries[_gameId];
+        require(lottery.result != 0);
+        uint8[6] memory result = decodeBid(lottery.result);
+        Bids storage bid = lottery.bids[encode(result)[0]];
+        address[] memory fiveWinners = bid.bidders;
+        uint256[] memory bids = bid.addressToBid[fiveWinners[i]];
+        uint256 jWinCount = bid.bidToAddress[lottery.result].length;
+        uint256 fiveWinCount = bids.length.sub(jWinCount);
+        uint256 iterations = _range[1] <= fiveWinners.length ? _range[1] : fiveWinners.length;
+        for (uint256 i = _range[0]; i < iterations; i++) {
+            if(bid.payoutsSet[fiveWinners[i]]== true){
+                continue;
+            }
+            bid.payoutsSet[fiveWinners[i]]= true;
+            for (uint256 j = 0; j < bids.length; j++) {
+                if (bids[j] == lottery.result) {
+                 //value = (jpAmount).div(jWinCount);
+                    //@todo win JP
+                    //increasePayoutBalances(fiveWinners[i], value);
+                } else {
+                    //value = (jpAmount).div(fiveWinCount);
+                    //todo adds five nubers win
+                    //increasePayoutBalances(fiveWinners[i], value);
+                }
+            }
+        }
     }
 
     function getGame(uint256 _time) public view returns (
@@ -80,8 +117,22 @@ contract BWLottery is BWManaged {
         collectedEthers = lottery.collectedEthers;
         contributionRange = lottery.contributionRange;
         if (lottery.result != 0) {
-            jpWinners = lottery.bidsWithPowerball[lottery.result];
-            fiveWinners = lottery.bids[encode(result)[0]];
+            Bids storage bid = lottery.bids[encode(result)[0]];
+            jpWinners = bid.bidToAddress[lottery.result];
+            fiveWinners = bid.bidders;
+        }
+    }
+
+    function getGameWinners(uint256 _time) public view returns (
+        address[] jpWinners,
+        address[] fiveWinners
+    ) {
+        Game storage lottery = lotteries[_time];
+        uint8[6] memory result = decodeBid(lottery.result);
+        if (lottery.result != 0) {
+            Bids storage bid = lottery.bids[encode(result)[0]];
+            jpWinners = bid.bidToAddress[lottery.result];
+            fiveWinners = bid.bidders;
         }
     }
 

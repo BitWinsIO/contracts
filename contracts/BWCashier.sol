@@ -29,18 +29,6 @@ contract BWCashier is BWManaged {
         etherHolder = _etherHolder;
     }
 
-    function claim() public {
-        uint balance = payoutBalances[msg.sender];
-
-        require(balance > 0);
-
-        allocatedEther = allocatedEther.sub(balance);
-        payoutBalances[msg.sender] = 0;
-        msg.sender.transfer(balance);
-
-        emit Claim(msg.sender, balance);
-    }
-
     function recordPurchase(
         uint256 _gameId,
         address _contributor
@@ -49,6 +37,22 @@ contract BWCashier is BWManaged {
     requireRegisteredContract(RESULTS) {
         emit LotteryPurchased(_contributor, _gameId);
         balances[_contributor] = balances[_contributor].add(msg.value);
+    }
+
+    function increasePayoutBalances(address _holder, uint256 _value) public {
+        require(msg.sender == management.contractRegistry(RESULTS), ACCESS_DENIED);
+        payoutBalances[_holder]= payoutBalances[_holder].add(_value);
+    }
+
+    function claim() public {
+        uint balance = payoutBalances[msg.sender];
+
+        require(balance > 0);
+        payoutBalances[msg.sender] = 0;
+        allocatedEther = allocatedEther.sub(balance);
+        msg.sender.transfer(balance);
+
+        emit Claim(msg.sender, balance);
     }
 
     function setEtherHolder(address _etherHolder) public onlyOwner {

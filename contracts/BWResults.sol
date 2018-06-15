@@ -10,7 +10,6 @@ contract BWResults is BWManaged {
 
     using SafeMath for uint256;
 
-    mapping(uint256 => uint8[6]) public results;
     mapping(uint256 => bytes32[10]) public hashes;
     mapping(uint256 => uint8) public hashesCount;
 
@@ -34,8 +33,9 @@ contract BWResults is BWManaged {
         require(hashesCount[_gameId] == 10, ACCESS_DENIED);
         uint8[6] memory numbers;
         //@todo add implementation
-        BWLottery lottery =  management.contractRegistry(LOTTERY);
+        BWLottery lottery =  BWLottery(management.contractRegistry(LOTTERY));
         lottery.setGameResult(_gameId, numbers);
+
         emit GameResult(_gameId, numbers);
 
         return (_gameId, numbers);
