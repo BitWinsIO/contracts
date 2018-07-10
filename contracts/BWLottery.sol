@@ -1,177 +1,172 @@
 pragma solidity 0.4.24;
 
-import 'zeppelin-solidity/contracts/math/SafeMath.sol';
+import 'openzeppelin-solidity/contracts/math/SafeMath.sol';
 import './BWManaged.sol';
 import './BWCashier.sol';
+import './BWCombinations.sol';
+import './BWResults.sol';
 
 
 contract BWLottery is BWManaged {
 
     using SafeMath for uint256;
 
+    uint256 public prevGame;
     uint256 public activeGame;
 
     //timestamp => struct
     mapping(uint256 => Game) public lotteries;
 
     struct Game {
-        uint256 result;
         uint256 jackpot;
         uint256 collectedEthers;
-        uint256[2] contributionRange;
-        mapping(address => uint256[]) contributors;
-        mapping(uint256 => Bids) bids;
-    }
+        uint256 ticketsIssued;
+        uint256 pb;
+        uint256[5] resultBalls;
+        uint256[7] resultCombinations;
+        mapping(uint256 => Ticket) tickets;
+        mapping(uint256 => uint256) results; //comination key =>[tiketsID/ count
+        //
+        mapping(uint256 => uint256) winnersPerLev;
+        mapping(uint256 => uint256) ticketToKey;
 
-    struct Bids {
-        mapping(uint256 => address[]) bidToAddress;
-        address[] bidders;
-        mapping(address => uint256[]) addressToBid;
-        mapping(address => bool) payoutsSet; //addressId => set
+    }
+    event WinnerLogged(uint256 gameId, uint256 ticketId, uint256 prize);
+    event TicketBought(uint256 gameId, uint256 ticketId, uint256[5] balls, uint256 pb);
+
+    struct Ticket {
+        uint256[5] balls;
+        uint256 powerBall;
+        address owner;
     }
 
     constructor(
         address _management,
-        uint256 _minContribution,
-        uint256 _maxContribution,
-        uint256 _initialJackpot
+        uint256 _initialJackpot,
+        uint256 _firstGameStartAt
     ) public BWManaged(_management) {
-        createGame(_minContribution, _maxContribution, _initialJackpot);
+        createGameInternal(_initialJackpot, _firstGameStartAt);
     }
 
-    function purchase(uint8[6] _input) public payable requireRegisteredContract(CASHIER) {
+    function purchase(uint256[5] _input, uint256 _powerBall) public payable requireRegisteredContract(CASHIER) {
         require(activeGame > 0, NO_ACTIVE_LOTTERY);
         require(!isContract(msg.sender), ACCESS_DENIED);
         require(block.timestamp <= activeGame.add(GAME_DURATION), ACCESS_DENIED);
+        require(_input[0] >= MIN_NUMBER && _input[4] <= maxBall, WRONG_AMOUNT);
+        require(_powerBall >= MIN_NUMBER && _powerBall <= maxPowerBall, WRONG_AMOUNT);
 
         Game storage lottery = lotteries[activeGame];
 
-        require((lottery.contributionRange[0] < msg.value
-        && (lottery.contributionRange[1] == 0 || lottery.contributionRange[1] >= msg.value)), WRONG_AMOUNT);
+        require((ticketPrice <= msg.value), WRONG_AMOUNT);
 
-        uint256[2] memory numbers = encode(_input);
-        require((numbers[0] != 0 && numbers[1] != 0), WRONG_AMOUNT);
-        Bids storage bid = lottery.bids[numbers[0]];
-        bid.bidToAddress[numbers[0]].push(msg.sender);
-        bid.bidders.push(msg.sender);
+        uint256 ticketId = lottery.ticketsIssued.add(1);
+        lottery.ticketsIssued = ticketId;
+        lottery.tickets[ticketId] = Ticket(_input, _powerBall, msg.sender);
         lottery.collectedEthers = lottery.collectedEthers.add(msg.value);
-        lottery.contributors[msg.sender].push(msg.value);
-
+        BWCombinations combination = BWCombinations(management.contractRegistry(COMBINATIONS));
+        uint256[7] memory combinations = combination.calculateComb(_input, _powerBall);
+        for (uint256 i = 0; i < _input.length; i++) {
+            lottery.results[combinations[i]]++;
+        }
+        emit TicketBought(activeGame, ticketId, _input, _powerBall);
         BWCashier cashier = BWCashier(management.contractRegistry(CASHIER));
         cashier.recordPurchase.value(msg.value)(activeGame, msg.sender);
 
     }
 
-    function setGameResult(uint256 _gameId, uint8[6] _input) public requireRegisteredContract(CASHIER) {
-        require(msg.sender == management.contractRegistry(RESULTS), ACCESS_DENIED);
+    function setGameResult(uint256 _gameId, uint256[5] _input, uint256 _pb) public requireRegisteredContract(CASHIER) {
+        require(activeGame > 0, ACCESS_DENIED);
+        require(msg.sender == management.contractRegistry(RANDOMIZER), ACCESS_DENIED);
         require(_gameId.add(GAME_DURATION) <= block.timestamp, ACCESS_DENIED);
+        require(_pb >= MIN_NUMBER && _pb <= maxPowerBall, WRONG_AMOUNT);
+        require(_input[0] >= MIN_NUMBER && _input[4] <= maxBall, WRONG_AMOUNT);
         Game storage lottery = lotteries[_gameId];
-        uint256[2] memory numbers = encode(_input);
-        require((numbers[0] != 0 && numbers[1] != 0), WRONG_AMOUNT);
-        lottery.result = numbers[1];
+        require(lottery.pb == 0, ACCESS_DENIED);
+        lottery.resultBalls = _input;
+        lottery.pb = _pb;
+        BWCombinations combination = BWCombinations(management.contractRegistry(COMBINATIONS));
+        lottery.resultCombinations = combination.calculateComb(_input, _pb);
+        prevGame = _gameId;
+        activeGame = 0;
+//        if(autoStartNextGame){
+//            createGameInternal(_jackpot, _startTime);
+//        }
     }
 
-    //  winner  range to avoid  out of gas error
-    // - [0,0] - not run;
-    // - [a,b] - run from a to b; a - included  if b is gather than length run to length
-    function setPurchase(uint256 _gameId, uint256[2] _range) public requireRegisteredContract(CASHIER) {
-        require(msg.sender == management.contractRegistry(RESULTS), ACCESS_DENIED);
-        require(_gameId.add(GAME_DURATION) <= block.timestamp, ACCESS_DENIED);
+    function createGame(uint256 _jackpot, uint256 _startTime) public onlyOwner {
+        createGameInternal(_jackpot, _startTime);
+    }
+
+    function saveClaim(uint256 _gameId, uint256 _category, uint256 _ticketId) public requireRegisteredContract(RESULTS) {
+        require(_gameId != 0 && block.timestamp <= _gameId.add(14 days), ACCESS_DENIED);
         Game storage lottery = lotteries[_gameId];
-        require(lottery.result != 0);
-        uint8[6] memory result = decodeBid(lottery.result);
-        Bids storage bid = lottery.bids[encode(result)[0]];
-        address[] memory fiveWinners = bid.bidders;
-        uint256[] memory bids = bid.addressToBid[fiveWinners[i]];
-        uint256 jWinCount = bid.bidToAddress[lottery.result].length;
-        uint256 fiveWinCount = bids.length.sub(jWinCount);
-        uint256 iterations = _range[1] <= fiveWinners.length ? _range[1] : fiveWinners.length;
-        for (uint256 i = _range[0]; i < iterations; i++) {
-            if(bid.payoutsSet[fiveWinners[i]]== true){
-                continue;
-            }
-            bid.payoutsSet[fiveWinners[i]]= true;
-            for (uint256 j = 0; j < bids.length; j++) {
-                if (bids[j] == lottery.result) {
-                 //value = (jpAmount).div(jWinCount);
-                    //@todo win JP
-                    //increasePayoutBalances(fiveWinners[i], value);
-                } else {
-                    //value = (jpAmount).div(fiveWinCount);
-                    //todo adds five nubers win
-                    //increasePayoutBalances(fiveWinners[i], value);
-                }
-            }
-        }
+        lottery.winnersPerLev[_category] = lottery.winnersPerLev[_category].add(1);
+        lottery.ticketToKey[_ticketId] = _category;
+        WinnerLogged(_gameId, _ticketId, _category);
     }
 
     function getGame(uint256 _time) public view returns (
-        uint8[6] result,
+        uint256 jp,
         uint256 collectedEthers,
-        uint256[2] contributionRange,
-        address[] jpWinners,
-        address[] fiveWinners
+        uint256 ticketPrice,
+        uint256 ticketsIssued,
+        uint256 pb,
+        uint256[5] resultBalls,
+        uint256[7] resultCombinations
     ) {
         Game storage lottery = lotteries[_time];
-        result = decodeBid(lottery.result);
+        jp = lottery.jackpot;
         collectedEthers = lottery.collectedEthers;
-        contributionRange = lottery.contributionRange;
-        if (lottery.result != 0) {
-            Bids storage bid = lottery.bids[encode(result)[0]];
-            jpWinners = bid.bidToAddress[lottery.result];
-            fiveWinners = bid.bidders;
-        }
+        ticketPrice = ticketPrice;
+        ticketsIssued= lottery.ticketsIssued;
+        pb = lottery.pb;
+        resultBalls = lottery.resultBalls;
+        resultCombinations = lottery.resultCombinations;
     }
 
-    function getGameWinners(uint256 _time) public view returns (
-        address[] jpWinners,
-        address[] fiveWinners
+    function getGameReults(uint256 _time) public view returns (
+        uint256[5] resultBalls,
+        uint256 pb
+    ) {
+        Game memory lottery = lotteries[_time];
+        resultBalls = lottery.resultBalls;
+        pb = lottery.pb;
+    }
+
+    function getGameTicketById(uint256 _time, uint256 _ticketId) public view returns (
+        uint256[5] balls,
+        uint256 powerBall,
+        address owner
     ) {
         Game storage lottery = lotteries[_time];
-        uint8[6] memory result = decodeBid(lottery.result);
-        if (lottery.result != 0) {
-            Bids storage bid = lottery.bids[encode(result)[0]];
-            jpWinners = bid.bidToAddress[lottery.result];
-            fiveWinners = bid.bidders;
-        }
+        Ticket memory ticket = lottery.tickets[_ticketId];
+        balls = ticket.balls;
+        powerBall = ticket.powerBall;
+        owner = ticket.owner;
     }
 
-    function decodeBid(uint256 _bid) public pure returns (uint8[6] result){
-        result[0] = uint8(bytes2(_bid >> 16));
-        result[1] = uint8(bytes2(_bid >> 32));
-        result[2] = uint8(bytes2(_bid >> 48));
-        result[3] = uint8(bytes2(_bid >> 64));
-        result[4] = uint8(bytes2(_bid >> 80));
-        result[5] = uint8(bytes2(_bid >> 96));
+    function getResultsByTicketId(uint256 _time, uint256 _ticketId) public view returns (uint256) {
+        Game storage lottery = lotteries[_time];
+        uint256 category = lottery.ticketToKey[_ticketId];
+        return lottery.winnersPerLev[category];
     }
 
-    function encode(uint8[6] _input) public pure returns (uint256[2] results){
-        uint256 bid;
-        for (uint256 i = 0; i < _input.length; i++) {
-            if (_input[i] < _input.length - 1) {
-                if (_input[i] < MIN_NUMBER || _input[i] > MAX_NUMBER) {
-                    bid = 0;
-                    return [bid, bid];
-                }
-                bid = bid.add(_input[i] << uint256(16).mul(i+1));
-            } else {
-                results[0] = bid;
-                if (_input[i] < MIN_NUMBER || _input[i] > MAX_POWERBALL) {
-                    bid = 0;
-                    return [bid, bid];
-                }
-                bid = bid.add(_input[i] << uint256(16).mul(i+1));
-                results[1] = bid;
-            }
-        }
+    function markTickedAsClaimed(uint256 _time, uint256 _ticketId) public returns (uint256) {
+        require(msg.sender == management.contractRegistry(RESULTS), ACCESS_DENIED);
+        Game storage lottery = lotteries[_time];
+        lottery.ticketToKey[_ticketId]= 0;
     }
 
-    function createGame(uint256 _minContribution, uint256 _maxContribution, uint256 _jackpot) internal {
+    function createGameInternal(uint256 _jackpot, uint256 _startTime) internal {
         //@todo increase jackpot if not win prev
-        lotteries[block.timestamp] = Game(0, _jackpot, 0, [_minContribution, _maxContribution]);
+        require(activeGame.add(GAME_DURATION) <= _startTime);
+        uint256[5] memory tmp;
+        uint256[7] memory tmp2;
+        lotteries[_startTime] = Game(_jackpot, 0, 0, 0, tmp, tmp2);
+        activeGame = _startTime;
     }
 
-    function isContract(address _addr) private view returns (bool iscontract){
+    function isContract(address _addr) private view returns (bool){
         uint32 size;
         assembly {
             size := extcodesize(_addr)

@@ -21,6 +21,7 @@
   "scripts": {
     "lint": "npm run solhint",
     "ganache": "ganache-cli > /dev/null 2>&1 &",
+    "bridge": "node ../ethereum-bridge/bridge -a 9 -H 127.0.0.1 -p 9545 --dev",
     "test": "./node_modules/.bin/truffle.cmd test",
     "develop": "./node_modules/.bin/truffle.cmd develop",
     "compile": " ./node_modules/.bin/truffle.cmd compile",
@@ -54,6 +55,6 @@
     "solidity-coverage": "^0.5.0",
     "solium": "^1.1.7",
     "truffle-hdwallet-provider": "0.0.3",
-    "zeppelin-solidity": "^1.9.0"
+    "openzeppelin-solidity": "^1.9.0"
   }
 }
