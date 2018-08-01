@@ -28,8 +28,11 @@ contract BWManaged is Ownable, BWConstants {
         _;
     }
 
-    constructor(address managementAddress) public {
-        management = BWManagement(managementAddress);
+    constructor(address _managementAddress) public {
+        management = BWManagement(_managementAddress);
+        payoutsPerCategory[JACKPOT] = 80;
+        payoutsPerCategory[FIVE] = 15;
+        payoutsPerCategory[FOUR_PB] = 5;
     }
 
     function setManagementContract(address _management) public onlyOwner {
@@ -62,4 +65,8 @@ contract BWManaged is Ownable, BWConstants {
         autoStartNextGame = _newVal;
     }
 
+    function setPayoutsPerCategory(uint256 _categoryId, uint256 _value) public onlyOwner {
+        require(_value <= 100, WRONG_AMOUNT);
+        payoutsPerCategory[_categoryId] = _value;
+    }
 }

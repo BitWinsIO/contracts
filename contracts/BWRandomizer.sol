@@ -45,9 +45,11 @@ contract BWRandomizer is BWManaged, usingOraclize {
         insertionSortMemory(randomInt);
         uint256 pb = parseInt(sl_result.split(', '.toSlice()).toString()) % maxPowerBall;
         BWLottery lottery = BWLottery(management.contractRegistry(LOTTERY));
-        lottery.setGameResult(lottery.activeGame(), randomInt, pb);
+        uint256 gameId = lottery.activeGame();
+        lottery.setGameResult(gameId, randomInt, pb);
+        BWCashier cashier = BWCashier(management.contractRegistry(CASHIER));
+        cashier.setGameBalance(gameId);
         emit LogRandomUpdate(result);
-        // update();
     }
 
     /* set gas limit for oraclize query */
@@ -65,7 +67,6 @@ contract BWRandomizer is BWManaged, usingOraclize {
             emit LogInfo("Oraclize query was NOT sent, please add some ETH to cover for the query fee");
         } else {
             emit LogInfo("Oraclize query was sent, standing by for the answer..");
-
 
             // Using XPath to to fetch the right element in the JSON response
             randomQueryID += 1;

@@ -13,12 +13,12 @@ contract BWLottery is BWManaged {
 
     uint256 public prevGame;
     uint256 public activeGame;
+    BWResults public resultContract;
 
     //timestamp => struct
     mapping(uint256 => Game) public lotteries;
 
     struct Game {
-        uint256 jackpot;
         uint256 collectedEthers;
         uint256 ticketsIssued;
         uint256 pb;
@@ -42,10 +42,9 @@ contract BWLottery is BWManaged {
 
     constructor(
         address _management,
-        uint256 _initialJackpot,
         uint256 _firstGameStartAt
     ) public BWManaged(_management) {
-        createGameInternal(_initialJackpot, _firstGameStartAt);
+        createGameInternal(_firstGameStartAt);
     }
 
     function purchase(uint256[5] _input, uint256 _powerBall) public payable requireRegisteredContract(CASHIER) {
@@ -62,7 +61,7 @@ contract BWLottery is BWManaged {
         uint256 ticketId = lottery.ticketsIssued.add(1);
         lottery.ticketsIssued = ticketId;
         lottery.tickets[ticketId] = Ticket(_input, _powerBall, msg.sender);
-        lottery.collectedEthers = lottery.collectedEthers.add(msg.value);
+
         BWCombinations combination = BWCombinations(management.contractRegistry(COMBINATIONS));
         uint256[7] memory combinations = combination.calculateComb(_input, _powerBall);
         for (uint256 i = 0; i < _input.length; i++) {
@@ -70,8 +69,8 @@ contract BWLottery is BWManaged {
         }
         emit TicketBought(activeGame, ticketId, _input, _powerBall);
         BWCashier cashier = BWCashier(management.contractRegistry(CASHIER));
-        cashier.recordPurchase.value(msg.value)(activeGame, msg.sender);
-
+        uint256 leftForPrizes = cashier.recordPurchase.value(msg.value)(activeGame, msg.sender);
+        lottery.collectedEthers = lottery.collectedEthers.add(leftForPrizes);
     }
 
     function setGameResult(uint256 _gameId, uint256[5] _input, uint256 _pb) public requireRegisteredContract(CASHIER) {
@@ -89,12 +88,17 @@ contract BWLottery is BWManaged {
         prevGame = _gameId;
         activeGame = 0;
 //        if(autoStartNextGame){
-//            createGameInternal(_jackpot, _startTime);
+//            createGameInternal(_startTime);
 //        }
     }
 
-    function createGame(uint256 _jackpot, uint256 _startTime) public onlyOwner {
-        createGameInternal(_jackpot, _startTime);
+    function setResultsContract(BWResults _results) onlyOwner {
+        require(_results == management.contractRegistry(RESULTS), ACCESS_DENIED);
+        resultContract = BWResults(_results);
+    }
+
+    function createGame(uint256 _startTime) public onlyOwner {
+        createGameInternal(_startTime);
     }
 
     function saveClaim(uint256 _gameId, uint256 _category, uint256 _ticketId) public requireRegisteredContract(RESULTS) {
@@ -102,22 +106,27 @@ contract BWLottery is BWManaged {
         Game storage lottery = lotteries[_gameId];
         lottery.winnersPerLev[_category] = lottery.winnersPerLev[_category].add(1);
         lottery.ticketToKey[_ticketId] = _category;
-        WinnerLogged(_gameId, _ticketId, _category);
+        emit WinnerLogged(_gameId, _ticketId, _category);
     }
 
     function getGame(uint256 _time) public view returns (
         uint256 jp,
         uint256 collectedEthers,
-        uint256 ticketPrice,
+        uint256 price,
         uint256 ticketsIssued,
         uint256 pb,
         uint256[5] resultBalls,
         uint256[7] resultCombinations
     ) {
         Game storage lottery = lotteries[_time];
-        jp = lottery.jackpot;
+        if (_time < activeGame) {
+            jp = resultContract.gameBalances(_time).mul(resultContract.payoutsPerCategory(JACKPOT)).div(100);
+        } else {
+            jp = lottery.collectedEthers.mul(resultContract.payoutsPerCategory(JACKPOT)).div(100)
+            .add(resultContract.collectedEthers().sub(resultContract.reservedAmount()));
+        }
         collectedEthers = lottery.collectedEthers;
-        ticketPrice = ticketPrice;
+        price = ticketPrice;
         ticketsIssued= lottery.ticketsIssued;
         pb = lottery.pb;
         resultBalls = lottery.resultBalls;
@@ -145,10 +154,18 @@ contract BWLottery is BWManaged {
         owner = ticket.owner;
     }
 
-    function getResultsByTicketId(uint256 _time, uint256 _ticketId) public view returns (uint256) {
+    function getTicketOwnerById(uint256 _time, uint256 _ticketId) public view returns (
+        address owner
+    ) {
+        Game storage lottery = lotteries[_time];
+        Ticket memory ticket = lottery.tickets[_ticketId];
+        owner = ticket.owner;
+    }
+
+    function getResultsByTicketId(uint256 _time, uint256 _ticketId) public view returns (uint256, uint256) {
         Game storage lottery = lotteries[_time];
         uint256 category = lottery.ticketToKey[_ticketId];
-        return lottery.winnersPerLev[category];
+        return (lottery.winnersPerLev[category], category);
     }
 
     function markTickedAsClaimed(uint256 _time, uint256 _ticketId) public returns (uint256) {
@@ -157,12 +174,14 @@ contract BWLottery is BWManaged {
         lottery.ticketToKey[_ticketId]= 0;
     }
 
-    function createGameInternal(uint256 _jackpot, uint256 _startTime) internal {
-        //@todo increase jackpot if not win prev
+    function createGameInternal(uint256 _startTime) internal {
         require(activeGame.add(GAME_DURATION) <= _startTime);
         uint256[5] memory tmp;
         uint256[7] memory tmp2;
-        lotteries[_startTime] = Game(_jackpot, 0, 0, 0, tmp, tmp2);
+        lotteries[_startTime] = Game(0, 0, 0, tmp, tmp2);
+        if (prevGame > 0) {
+
+        }
         activeGame = _startTime;
     }
 

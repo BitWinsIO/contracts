@@ -9,9 +9,26 @@ import './BWLottery.sol';
 contract BWResults is BWManaged {
     using SafeMath for uint256;
 
-    event Debug(string _s, uint _i);
+    mapping(uint256 => uint256) public gameBalances;
+    mapping(uint256 => bool[3]) public gameRezervedPrizes;
+    uint256 public reservedAmount;
+    uint256 public collectedEthers;
+
+    event PrizeWithdrawn(uint256 ticketId, uint256 category, uint256 amount);
+    event GameBalanceUpdated(uint256 _gameId, uint256 amount);
 
     constructor(address _management) public BWManaged(_management) {
+    }
+
+    //runs once in the moment of setting results
+    function increaseGameBalance(uint256 _gameId) public payable requirePermission(CAN_INCREASE_GAME_BALANCE) {
+        gameBalances[_gameId] = gameBalances[_gameId].add(msg.value).add(collectedEthers.sub(reservedAmount));
+        collectedEthers = address(this).balance;
+        emit GameBalanceUpdated(_gameId, gameBalances[_gameId]);
+    }
+
+    function getContractBalance() public view returns (uint256){
+        return address(this).balance;
     }
 
     function calculateResult(
@@ -50,28 +67,36 @@ contract BWResults is BWManaged {
         (balls, pb) = lottery.getGameReults(lottery.prevGame());
         uint256[5] memory ticketBalls;
         uint256 ticketPb;
-        address owner;
-        (ticketBalls, ticketPb, owner) = lottery.getGameTicketById(lottery.prevGame(), _ticketId);
+        address ticketOwner;
+        (ticketBalls, ticketPb, ticketOwner) = lottery.getGameTicketById(lottery.prevGame(), _ticketId);
         uint256 category = calculateResult(
             ticketBalls,
             ticketPb,
             balls,
             pb
         );
+        if (false == gameRezervedPrizes[lottery.prevGame()][category.sub(1)]) {
+            gameRezervedPrizes[lottery.prevGame()][category.sub(1)] = true;
+            reservedAmount = reservedAmount.add(gameBalances[lottery.prevGame()].mul(payoutsPerCategory[category]).div(100));
+        }
         lottery.saveClaim(lottery.prevGame(), category, _ticketId);
     }
 
     function withdrowPrize(uint256 _gameId, uint256 _ticketId) public {
         BWLottery lotteryContract = BWLottery(management.contractRegistry(LOTTERY));
-//        require(_gameId != 0 && block.timestamp >= _gameId.add(14 days), ACCESS_DENIED);
-        uint256 winnersAmount = lotteryContract.getResultsByTicketId(_gameId, _ticketId);
+        require(_gameId != 0 && block.timestamp >= _gameId.add(14 days), ACCESS_DENIED);
+
+        uint256 winnersAmount;
+        uint256 categoryId;
+        (winnersAmount, categoryId) = lotteryContract.getResultsByTicketId(_gameId, _ticketId);
         lotteryContract.markTickedAsClaimed(_gameId, _ticketId);
         require(winnersAmount > 0);
-
-//        lottery.ticketToKey[_ticketId] = 0;
-//        uint valuePerCategory;
-        //@todo  adds immplementation
-//        valuePerCategory.div(winnersAmount);
+        address owner = lotteryContract.getTicketOwnerById(_gameId, _ticketId);
+        uint256 value =  gameBalances[_gameId].mul(payoutsPerCategory[categoryId]).div(100).div(winnersAmount);
+        reservedAmount = reservedAmount.sub(value);
+        collectedEthers = collectedEthers.sub(value);
+        owner.transfer(value);
+        emit PrizeWithdrawn(_ticketId, categoryId, value);
     }
 
 }

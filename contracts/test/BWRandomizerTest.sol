@@ -30,7 +30,10 @@ contract BWRandomizerTest is BWRandomizer {
         uint256 pb = parseInt(sl_result.split(', '.toSlice()).toString()) % maxPowerBall;
         testPb = pb;
         BWLottery lottery = BWLottery(management.contractRegistry(LOTTERY));
-        lottery.setGameResult(lottery.activeGame(), randomInt, pb);
+        uint256 gameId = lottery.activeGame();
+        lottery.setGameResult(gameId, randomInt, pb);
+        BWCashier cashier = BWCashier(management.contractRegistry(CASHIER));
+        cashier.setGameBalance(gameId);
         emit LogRandomUpdate(result);
         // update();
     }
