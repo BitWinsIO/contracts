@@ -12,8 +12,8 @@ contract BWCashier is BWManaged {
     BWResults public resultsContract;
 
     uint256 public proportionAbsMax;
-    address[5] public etherHolders;
-    uint256[5] public percentages;
+    address[6] public etherHolders;
+    uint256[6] public percentages;
 
     mapping(address => uint256) public balances;
 
@@ -24,7 +24,7 @@ contract BWCashier is BWManaged {
     event Claim(address account, uint256 value);
 //    event Debug(string s, uint256 value);
 
-    constructor(address _management, uint256 _proportionAbsMax, address[5] _etherHolders, uint256[5] _percentages) public BWManaged(_management) {
+    constructor(address _management, uint256 _proportionAbsMax, address[6] _etherHolders, uint256[6] _percentages) public BWManaged(_management) {
         proportionAbsMax = _proportionAbsMax;
         for (uint256 i = 0; i < _etherHolders.length; i++) {
             require(_etherHolders[i] != address(0), ACCESS_DENIED);

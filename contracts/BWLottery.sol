@@ -33,6 +33,7 @@ contract BWLottery is BWManaged {
     }
     event WinnerLogged(uint256 gameId, uint256 ticketId, uint256 prize);
     event TicketBought(uint256 gameId, uint256 ticketId, uint256[5] balls, uint256 pb);
+    event Debug(string s, uint256 v);
 
     struct Ticket {
         uint256[5] balls;
@@ -70,6 +71,7 @@ contract BWLottery is BWManaged {
         emit TicketBought(activeGame, ticketId, _input, _powerBall);
         BWCashier cashier = BWCashier(management.contractRegistry(CASHIER));
         uint256 leftForPrizes = cashier.recordPurchase.value(msg.value)(activeGame, msg.sender);
+        emit Debug('leftForPrizes',leftForPrizes);
         lottery.collectedEthers = lottery.collectedEthers.add(leftForPrizes);
     }
 
