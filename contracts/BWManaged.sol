@@ -41,13 +41,9 @@ contract BWManaged is Ownable, BWConstants {
         management = BWManagement(_management);
     }
 
-    function hasPermission(address _subject, uint256 _permissionBit) internal view returns(bool) {
-        return management.permissions(_subject, _permissionBit);
-    }
-
     function setNewPrice(uint256 _newPrice) public onlyOwner {
         require(_newPrice > 0);
-        emit PriceUpdated(ticketPrice,_newPrice);
+        emit PriceUpdated(ticketPrice, _newPrice);
         ticketPrice = _newPrice;
     }
 
@@ -68,5 +64,9 @@ contract BWManaged is Ownable, BWConstants {
     function setPayoutsPerCategory(uint256 _categoryId, uint256 _value) public onlyOwner {
         require(_value <= 100, WRONG_AMOUNT);
         payoutsPerCategory[_categoryId] = _value;
+    }
+
+    function hasPermission(address _subject, uint256 _permissionBit) internal view returns (bool) {
+        return management.permissions(_subject, _permissionBit);
     }
 }

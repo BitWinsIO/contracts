@@ -5,8 +5,8 @@ import '../BWRandomizer.sol';
 
 contract BWRandomizerTest is BWRandomizer {
 
-    uint public testPb;
-    uint[5] public testArray;
+    uint256 public testPb;
+    uint256[5] public testArray;
 
     constructor(address _management) public BWRandomizer(_management) {
         OAR = OraclizeAddrResolverI(0x6f485C8BF6fc43eA212E93BBF8ce046C7f1cb475);
@@ -17,25 +17,20 @@ contract BWRandomizerTest is BWRandomizer {
     function __callback(bytes32, string result) public {
         uint256[5] memory randomInt;
 //        require(msg.sender == oraclize_cbAddress());
-        var sl_result = result.toSlice();
-        sl_result.beyond("[".toSlice()).until("]".toSlice());
-        for (uint i = 0; i < 5; i++) {
-            randomInt[i] = parseInt(sl_result.split(', '.toSlice()).toString());
+        string memory slResult = result.toSlice();
+        slResult.beyond('['.toSlice()).until(']'.toSlice());
+        for (uint256 i = 0; i < 5; i++) {
+            randomInt[i] = parseInt(slResult.split(', '.toSlice()).toString());
         }
         insertionSortMemory(randomInt);
-        for (i = 0; i < 5; i++) {
-            testArray[i] = randomInt[i];
-        }
-
-        uint256 pb = parseInt(sl_result.split(', '.toSlice()).toString()) % maxPowerBall;
-        testPb = pb;
+        uint256 pb = parseInt(slResult.split(', '.toSlice()).toString()) % maxPowerBall;
         BWLottery lottery = BWLottery(management.contractRegistry(LOTTERY));
         uint256 gameId = lottery.activeGame();
+//        require(block.timestamp <= gameId.add(GAME_DURATION), ACCESS_DENIED);
         lottery.setGameResult(gameId, randomInt, pb);
         BWCashier cashier = BWCashier(management.contractRegistry(CASHIER));
         cashier.setGameBalance(gameId);
         emit LogRandomUpdate(result);
-        // update();
     }
 
 }

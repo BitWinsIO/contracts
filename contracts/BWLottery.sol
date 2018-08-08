@@ -31,9 +31,9 @@ contract BWLottery is BWManaged {
         mapping(uint256 => uint256) ticketToKey;
 
     }
+
     event WinnerLogged(uint256 gameId, uint256 ticketId, uint256 prize);
     event TicketBought(uint256 gameId, uint256 ticketId, uint256[5] balls, uint256 pb);
-    event Debug(string s, uint256 v);
 
     struct Ticket {
         uint256[5] balls;
@@ -71,7 +71,6 @@ contract BWLottery is BWManaged {
         emit TicketBought(activeGame, ticketId, _input, _powerBall);
         BWCashier cashier = BWCashier(management.contractRegistry(CASHIER));
         uint256 leftForPrizes = cashier.recordPurchase.value(msg.value)(activeGame, msg.sender);
-        emit Debug('leftForPrizes',leftForPrizes);
         lottery.collectedEthers = lottery.collectedEthers.add(leftForPrizes);
     }
 
@@ -89,12 +88,12 @@ contract BWLottery is BWManaged {
         lottery.resultCombinations = combination.calculateComb(_input, _pb);
         prevGame = _gameId;
         activeGame = 0;
-//        if(autoStartNextGame){
-//            createGameInternal(_startTime);
-//        }
+        if (autoStartNextGame) {
+            createGameInternal(block.timestamp);
+        }
     }
 
-    function setResultsContract(BWResults _results) onlyOwner {
+    function setResultsContract(BWResults _results) public onlyOwner {
         require(_results == management.contractRegistry(RESULTS), ACCESS_DENIED);
         resultContract = BWResults(_results);
     }
@@ -106,8 +105,10 @@ contract BWLottery is BWManaged {
     function saveClaim(uint256 _gameId, uint256 _category, uint256 _ticketId) public requireRegisteredContract(RESULTS) {
         require(_gameId != 0 && block.timestamp <= _gameId.add(14 days), ACCESS_DENIED);
         Game storage lottery = lotteries[_gameId];
-        lottery.winnersPerLev[_category] = lottery.winnersPerLev[_category].add(1);
-        lottery.ticketToKey[_ticketId] = _category;
+        if (lottery.ticketToKey[_ticketId] == 0) {
+            lottery.winnersPerLev[_category] = lottery.winnersPerLev[_category].add(1);
+            lottery.ticketToKey[_ticketId] = _category;
+        }
         emit WinnerLogged(_gameId, _ticketId, _category);
     }
 
@@ -129,13 +130,13 @@ contract BWLottery is BWManaged {
         }
         collectedEthers = lottery.collectedEthers;
         price = ticketPrice;
-        ticketsIssued= lottery.ticketsIssued;
+        ticketsIssued = lottery.ticketsIssued;
         pb = lottery.pb;
         resultBalls = lottery.resultBalls;
         resultCombinations = lottery.resultCombinations;
     }
 
-    function getGameReults(uint256 _time) public view returns (
+    function getGameResults(uint256 _time) public view returns (
         uint256[5] resultBalls,
         uint256 pb
     ) {
@@ -173,7 +174,7 @@ contract BWLottery is BWManaged {
     function markTickedAsClaimed(uint256 _time, uint256 _ticketId) public returns (uint256) {
         require(msg.sender == management.contractRegistry(RESULTS), ACCESS_DENIED);
         Game storage lottery = lotteries[_time];
-        lottery.ticketToKey[_ticketId]= 0;
+        lottery.ticketToKey[_ticketId] = 0;
     }
 
     function createGameInternal(uint256 _startTime) internal {
@@ -187,7 +188,7 @@ contract BWLottery is BWManaged {
         activeGame = _startTime;
     }
 
-    function isContract(address _addr) private view returns (bool){
+    function isContract(address _addr) private view returns (bool) {
         uint32 size;
         assembly {
             size := extcodesize(_addr)

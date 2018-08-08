@@ -22,12 +22,13 @@ contract BWResults is BWManaged {
 
     //runs once in the moment of setting results
     function increaseGameBalance(uint256 _gameId) public payable requirePermission(CAN_INCREASE_GAME_BALANCE) {
-        gameBalances[_gameId] = gameBalances[_gameId].add(msg.value).add(collectedEthers.sub(reservedAmount));
+        require(gameBalances[_gameId] == 0);
         collectedEthers = address(this).balance;
+        gameBalances[_gameId] = gameBalances[_gameId].add(collectedEthers.sub(reservedAmount));
         emit GameBalanceUpdated(_gameId, gameBalances[_gameId]);
     }
 
-    function getContractBalance() public view returns (uint256){
+    function getContractBalance() public view returns (uint256) {
         return address(this).balance;
     }
 
@@ -36,7 +37,7 @@ contract BWResults is BWManaged {
         uint256 _ticketPb,
         uint256[5] _balls,
         uint256 _pb
-    ) public view returns (uint256 result){
+    ) public pure returns (uint256 result) {
         uint256 matches;
         bool powerball;
         for (uint256 i = 0; i < 5; i++) {
@@ -64,7 +65,7 @@ contract BWResults is BWManaged {
         require(lottery.prevGame() != 0 && block.timestamp <= lottery.prevGame().add(14 days), ACCESS_DENIED);
         uint256[5] memory balls;
         uint256 pb;
-        (balls, pb) = lottery.getGameReults(lottery.prevGame());
+        (balls, pb) = lottery.getGameResults(lottery.prevGame());
         uint256[5] memory ticketBalls;
         uint256 ticketPb;
         address ticketOwner;
@@ -75,6 +76,7 @@ contract BWResults is BWManaged {
             balls,
             pb
         );
+        require(category > 0, NOT_AVAILABLE);
         if (false == gameRezervedPrizes[lottery.prevGame()][category.sub(1)]) {
             gameRezervedPrizes[lottery.prevGame()][category.sub(1)] = true;
             reservedAmount = reservedAmount.add(gameBalances[lottery.prevGame()].mul(payoutsPerCategory[category]).div(100));
@@ -90,9 +92,9 @@ contract BWResults is BWManaged {
         uint256 categoryId;
         (winnersAmount, categoryId) = lotteryContract.getResultsByTicketId(_gameId, _ticketId);
         lotteryContract.markTickedAsClaimed(_gameId, _ticketId);
-        require(winnersAmount > 0);
+        require(winnersAmount > 0, NOT_AVAILABLE);
         address owner = lotteryContract.getTicketOwnerById(_gameId, _ticketId);
-        uint256 value =  gameBalances[_gameId].mul(payoutsPerCategory[categoryId]).div(100).div(winnersAmount);
+        uint256 value = gameBalances[_gameId].mul(payoutsPerCategory[categoryId]).div(100).div(winnersAmount);
         reservedAmount = reservedAmount.sub(value);
         collectedEthers = collectedEthers.sub(value);
         owner.transfer(value);

@@ -6,22 +6,22 @@ import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 contract BWManagement is Ownable {
 
     // Contract Registry
-    mapping(uint => address) public contractRegistry;
+    mapping(uint256 => address) public contractRegistry;
 
     // Permissions
-    mapping(address => mapping(uint => bool)) public permissions;
+    mapping(address => mapping(uint256 => bool)) public permissions;
 
-    event PermissionsSet(address subject, uint permission, bool value);
+    event PermissionsSet(address subject, uint256 permission, bool value);
 
-    event ContractRegistered(uint key, address target);
+    event ContractRegistered(uint256 key, address target);
 
-    function setPermission(address _address, uint _permission, bool _value) public onlyOwner {
+    function setPermission(address _address, uint256 _permission, bool _value) public onlyOwner {
         permissions[_address][_permission] = _value;
 
         emit PermissionsSet(_address, _permission, _value);
     }
 
-    function registerContract(uint _key, address _target) public onlyOwner {
+    function registerContract(uint256 _key, address _target) public onlyOwner {
         contractRegistry[_key] = _target;
 
         emit ContractRegistered(_key, _target);

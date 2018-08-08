@@ -16,7 +16,7 @@ contract BWLotteryTest is BWLottery {
     function setGameResult(uint256 _gameId, uint256[5] _input, uint256 _pb) public requireRegisteredContract(CASHIER) {
         require(activeGame > 0, ACCESS_DENIED);
         require(msg.sender == management.contractRegistry(RANDOMIZER), ACCESS_DENIED);
-        //        require(_gameId.add(GAME_DURATION) <= block.timestamp, ACCESS_DENIED);
+//        require(_gameId.add(GAME_DURATION) <= block.timestamp, ACCESS_DENIED);
         require(_pb >= MIN_NUMBER && _pb <= maxPowerBall, WRONG_AMOUNT);
         require(_input[0] >= MIN_NUMBER && _input[4] <= maxBall, WRONG_AMOUNT);
         Game storage lottery = lotteries[_gameId];
@@ -27,8 +27,8 @@ contract BWLotteryTest is BWLottery {
         lottery.resultCombinations = combination.calculateComb(_input, _pb);
         prevGame = _gameId;
         activeGame = 0;
-        //        if(autoStartNextGame){
-        //            createGameInternal(_jackpot, _startTime);
-        //        }
+        if(autoStartNextGame){
+            createGameInternal(block.timestamp);
+        }
     }
 }
