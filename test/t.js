@@ -54,7 +54,7 @@ contract('BWLottery', function (accounts) {
                 .then(Utils.receiptShouldSucceed);
             await lottery.purchase([5, 25, 46, 50, 70], 12, {value: web3.toWei('1', 'ether')}).then(Utils.receiptShouldFailed).catch(Utils.catchReceiptShouldFailed);
             await lottery.purchase([5, 25, 46, 50, 58], 29, {value: web3.toWei('1', 'ether')}).then(Utils.receiptShouldFailed).catch(Utils.catchReceiptShouldFailed);
-            let a = await lottery.ticketPrice.call().valueOf();
+            let a = await management.ticketPrice.call().valueOf();
             assert.equal(a, web3.toWei('0.0025', 'ether').valueOf(), "price is not equal")
             let game = await lottery.lotteries.call(activetime);
             assert.equal(game[0].valueOf(), new BigNumber(web3.toWei('2', 'ether')).mul(0.8).valueOf(), "collectedEthers is not equal")

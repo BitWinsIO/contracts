@@ -52,12 +52,12 @@ contract BWLottery is BWManaged {
         require(activeGame > 0, NO_ACTIVE_LOTTERY);
         require(!isContract(msg.sender), ACCESS_DENIED);
         require(block.timestamp <= activeGame.add(GAME_DURATION), ACCESS_DENIED);
-        require(_input[0] >= MIN_NUMBER && _input[4] <= maxBall, WRONG_AMOUNT);
-        require(_powerBall >= MIN_NUMBER && _powerBall <= maxPowerBall, WRONG_AMOUNT);
+        require(_input[0] >= MIN_NUMBER && _input[4] <= management.maxBall(), WRONG_AMOUNT);
+        require(_powerBall >= MIN_NUMBER && _powerBall <= management.maxPowerBall(), WRONG_AMOUNT);
 
         Game storage lottery = lotteries[activeGame];
 
-        require((ticketPrice <= msg.value), WRONG_AMOUNT);
+        require((management.ticketPrice() <= msg.value), WRONG_AMOUNT);
 
         uint256 ticketId = lottery.ticketsIssued.add(1);
         lottery.ticketsIssued = ticketId;
@@ -78,8 +78,8 @@ contract BWLottery is BWManaged {
         require(activeGame > 0, ACCESS_DENIED);
         require(msg.sender == management.contractRegistry(RANDOMIZER), ACCESS_DENIED);
         require(_gameId.add(GAME_DURATION) <= block.timestamp, ACCESS_DENIED);
-        require(_pb >= MIN_NUMBER && _pb <= maxPowerBall, WRONG_AMOUNT);
-        require(_input[0] >= MIN_NUMBER && _input[4] <= maxBall, WRONG_AMOUNT);
+        require(_pb >= MIN_NUMBER && _pb <= management.maxPowerBall(), WRONG_AMOUNT);
+        require(_input[0] >= MIN_NUMBER && _input[4] <= management.maxBall(), WRONG_AMOUNT);
         Game storage lottery = lotteries[_gameId];
         require(lottery.pb == 0, ACCESS_DENIED);
         lottery.resultBalls = _input;
@@ -88,7 +88,7 @@ contract BWLottery is BWManaged {
         lottery.resultCombinations = combination.calculateComb(_input, _pb);
         prevGame = _gameId;
         activeGame = 0;
-        if (autoStartNextGame) {
+        if (management.autoStartNextGame()) {
             createGameInternal(block.timestamp);
         }
     }
@@ -123,13 +123,13 @@ contract BWLottery is BWManaged {
     ) {
         Game storage lottery = lotteries[_time];
         if (_time < activeGame) {
-            jp = resultContract.gameBalances(_time).mul(resultContract.payoutsPerCategory(JACKPOT)).div(100);
+            jp = resultContract.gameBalances(_time).mul(management.payoutsPerCategory(JACKPOT)).div(100);
         } else {
-            jp = lottery.collectedEthers.mul(resultContract.payoutsPerCategory(JACKPOT)).div(100)
+            jp = lottery.collectedEthers.mul(management.payoutsPerCategory(JACKPOT)).div(100)
             .add(resultContract.collectedEthers().sub(resultContract.reservedAmount()));
         }
         collectedEthers = lottery.collectedEthers;
-        price = ticketPrice;
+        price = management.ticketPrice();
         ticketsIssued = lottery.ticketsIssued;
         pb = lottery.pb;
         resultBalls = lottery.resultBalls;

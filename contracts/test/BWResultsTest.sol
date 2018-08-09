@@ -20,7 +20,7 @@ contract BWResultsTest is BWResults {
         lotteryContract.markTickedAsClaimed(_gameId, _ticketId);
         require(winnersAmount > 0);
         address owner = lotteryContract.getTicketOwnerById(_gameId, _ticketId);
-        uint256 value =  gameBalances[_gameId].mul(payoutsPerCategory[categoryId]).div(100).div(winnersAmount);
+        uint256 value =  gameBalances[_gameId].mul(management.payoutsPerCategory(categoryId)).div(100).div(winnersAmount);
         reservedAmount = reservedAmount.sub(value);
         collectedEthers = collectedEthers.sub(value);
         owner.transfer(value);

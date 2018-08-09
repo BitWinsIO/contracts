@@ -13,13 +13,13 @@ contract BWCombinations is BWManaged {
     function encode(uint256[6] _input) public view returns (uint256 bid) {
         for (uint256 i = 0; i < _input.length; i++) {
             if (i < _input.length - 1) {
-                if (_input[i] > maxBall) {
+                if (_input[i] > management.maxBall()) {
                     bid = 0;
                     return bid;
                 }
                 bid = bid.add(_input[i] << uint256(16).mul(i + 1));
             } else {
-                if (_input[i] > maxPowerBall) {
+                if (_input[i] > management.maxPowerBall()) {
                     bid = 0;
                     return bid;
                 }

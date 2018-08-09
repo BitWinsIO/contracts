@@ -17,8 +17,8 @@ contract BWLotteryTest is BWLottery {
         require(activeGame > 0, ACCESS_DENIED);
         require(msg.sender == management.contractRegistry(RANDOMIZER), ACCESS_DENIED);
 //        require(_gameId.add(GAME_DURATION) <= block.timestamp, ACCESS_DENIED);
-        require(_pb >= MIN_NUMBER && _pb <= maxPowerBall, WRONG_AMOUNT);
-        require(_input[0] >= MIN_NUMBER && _input[4] <= maxBall, WRONG_AMOUNT);
+        require(_pb >= MIN_NUMBER && _pb <= management.maxPowerBall(), WRONG_AMOUNT);
+        require(_input[0] >= MIN_NUMBER && _input[4] <= management.maxBall(), WRONG_AMOUNT);
         Game storage lottery = lotteries[_gameId];
         require(lottery.pb == 0, ACCESS_DENIED);
         lottery.resultBalls = _input;
@@ -27,7 +27,7 @@ contract BWLotteryTest is BWLottery {
         lottery.resultCombinations = combination.calculateComb(_input, _pb);
         prevGame = _gameId;
         activeGame = 0;
-        if(autoStartNextGame){
+        if(management.autoStartNextGame()){
             createGameInternal(block.timestamp);
         }
     }

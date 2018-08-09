@@ -36,13 +36,13 @@ contract BWRandomizer is BWManaged, usingOraclize {
     function __callback(bytes32, string result) public {
         uint256[5] memory randomInt;
         require(msg.sender == oraclize_cbAddress());
-        string memory slResult = result.toSlice();
+        var slResult = result.toSlice();
         slResult.beyond('['.toSlice()).until(']'.toSlice());
         for (uint256 i = 0; i < 5; i++) {
             randomInt[i] = parseInt(slResult.split(', '.toSlice()).toString());
         }
         insertionSortMemory(randomInt);
-        uint256 pb = parseInt(slResult.split(', '.toSlice()).toString()) % maxPowerBall;
+        uint256 pb = parseInt(slResult.split(', '.toSlice()).toString()) % management.maxPowerBall();
         BWLottery lottery = BWLottery(management.contractRegistry(LOTTERY));
         uint256 gameId = lottery.activeGame();
         require(block.timestamp <= gameId.add(GAME_DURATION), ACCESS_DENIED);

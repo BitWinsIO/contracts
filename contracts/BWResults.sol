@@ -79,7 +79,7 @@ contract BWResults is BWManaged {
         require(category > 0, NOT_AVAILABLE);
         if (false == gameRezervedPrizes[lottery.prevGame()][category.sub(1)]) {
             gameRezervedPrizes[lottery.prevGame()][category.sub(1)] = true;
-            reservedAmount = reservedAmount.add(gameBalances[lottery.prevGame()].mul(payoutsPerCategory[category]).div(100));
+            reservedAmount = reservedAmount.add(gameBalances[lottery.prevGame()].mul(management.payoutsPerCategory(category)).div(100));
         }
         lottery.saveClaim(lottery.prevGame(), category, _ticketId);
     }
@@ -94,7 +94,7 @@ contract BWResults is BWManaged {
         lotteryContract.markTickedAsClaimed(_gameId, _ticketId);
         require(winnersAmount > 0, NOT_AVAILABLE);
         address owner = lotteryContract.getTicketOwnerById(_gameId, _ticketId);
-        uint256 value = gameBalances[_gameId].mul(payoutsPerCategory[categoryId]).div(100).div(winnersAmount);
+        uint256 value = gameBalances[_gameId].mul(management.payoutsPerCategory(categoryId)).div(100).div(winnersAmount);
         reservedAmount = reservedAmount.sub(value);
         collectedEthers = collectedEthers.sub(value);
         owner.transfer(value);
