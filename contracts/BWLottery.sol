@@ -103,7 +103,7 @@ contract BWLottery is BWManaged {
     }
 
     function saveClaim(uint256 _gameId, uint256 _category, uint256 _ticketId) public requireRegisteredContract(RESULTS) {
-        require(_gameId != 0 && block.timestamp <= _gameId.add(14 days), ACCESS_DENIED);
+        require(_gameId != 0 && block.timestamp <= _gameId.add(TIME_TO_CHECK_TICKET), ACCESS_DENIED);
         Game storage lottery = lotteries[_gameId];
         if (lottery.ticketToKey[_ticketId] == 0) {
             lottery.winnersPerLev[_category] = lottery.winnersPerLev[_category].add(1);

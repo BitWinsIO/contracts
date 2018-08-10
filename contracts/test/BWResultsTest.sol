@@ -13,7 +13,8 @@ contract BWResultsTest is BWResults {
     //test
     function withdrowPrize(uint256 _gameId, uint256 _ticketId) public {
         BWLottery lotteryContract = BWLottery(management.contractRegistry(LOTTERY));
-        //        require(_gameId != 0 && block.timestamp >= _gameId.add(14 days), ACCESS_DENIED);
+//        require(_gameId != 0 && block.timestamp >= _gameId.add(TIME_TO_CHECK_TICKET), ACCESS_DENIED);
+//        require(block.timestamp <= _gameId.add(TIME_TO_CHECK_TICKET).add(TIME_TO_CLAIM_PRIZE), ACCESS_DENIED);
         uint256 winnersAmount;
         uint256 categoryId;
         (winnersAmount, categoryId) = lotteryContract.getResultsByTicketId(_gameId, _ticketId);
