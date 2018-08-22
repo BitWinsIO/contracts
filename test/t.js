@@ -8,7 +8,8 @@ const Randomizer = artifacts.require("./test/BWRandomizerTest.sol");
 const Utils = require("./utils");
 const BigNumber = require('bignumber.js');
 let startGame = parseInt(new Date().getTime() / 1000),
-    oneWeek = 604800;
+    threeDays = 24*3*3600,
+oneWeek = 604800;
 
 contract('BWLottery', function (accounts) {
     let lottery,
@@ -29,7 +30,7 @@ contract('BWLottery', function (accounts) {
     beforeEach(async function () {
 
         management = await Management.new();
-        lottery = await Lottery.new(management.address, new BigNumber(startGame).sub(oneWeek).add(200));
+        lottery = await Lottery.new(management.address, new BigNumber(startGame).sub(threeDays).add(200));
         cashier = await Cashier.new(management.address, 10000, [fundation, BitWinsA, BitWinsB, Applicature, BitWinsC, BitWinsD], [40, 49, 49, 196, 686, 980]);
         combinations = await Combinations.new(management.address);
         results = await Results.new(management.address);
@@ -88,13 +89,13 @@ contract('BWLottery', function (accounts) {
             )
             console.log('rez', rez);
             await  results.claim(2)
-            console.log(new BigNumber(parseInt(new Date().getTime() / 1000)).sub(oneWeek).sub(30).sub(new BigNumber(parseInt(new Date().getTime() / 1000))).valueOf());
-            // await Utils.timeJump(oneWeek);
-            // await Utils.timeJump(new BigNumber(parseInt(new Date().getTime() / 1000)).sub(oneWeek).sub(30).sub(new BigNumber(parseInt(new Date().getTime() / 1000))));
+            console.log(new BigNumber(parseInt(new Date().getTime() / 1000)).sub(threeDays).sub(30).sub(new BigNumber(parseInt(new Date().getTime() / 1000))).valueOf());
+            // await Utils.timeJump(threeDays);
+            // await Utils.timeJump(new BigNumber(parseInt(new Date().getTime() / 1000)).sub(threeDays).sub(30).sub(new BigNumber(parseInt(new Date().getTime() / 1000))));
 
             a = await  results.getContractBalance.call()
             assert.equal(a.valueOf(), web3.toWei('1.6', 'ether').valueOf(), "contract balance is not equal")
-            await  results.withdrowPrize(new BigNumber(startGame).sub(oneWeek).add(200), 2)
+            await  results.withdrowPrize(new BigNumber(startGame).sub(threeDays).add(200), 2)
                 .then(Utils.receiptShouldSucceed);
 
         });
@@ -115,15 +116,15 @@ contract('BWLottery', function (accounts) {
         await management.setPermission(accounts[0], 3, true);
         await results.increaseGameBalance(activetime, {value: web3.toWei('2', 'ether')})
         await lottery.createGame(startGame);
-        await lottery.purchase([5, 25, 28, 40, 60], 12, {value: web3.toWei('1', 'ether')})
-            .then(Utils.receiptShouldSucceed);
-        game = await lottery.getGame.call(startGame);
-        assert.equal(game[0].valueOf(), new BigNumber(web3.toWei('2', 'ether')).add(new BigNumber(web3.toWei('1', 'ether')).mul(0.8).mul(0.8)).valueOf(), "jp is not equal")
-        assert.equal(game[1].valueOf(), new BigNumber(web3.toWei('1', 'ether')).mul(0.8).valueOf(), "collectedEthers is not equal")
-        assert.equal(game[2].valueOf(), web3.toWei('0.0025', 'ether').valueOf(), "ticketPrice is not equal")
-        assert.equal(game[3].valueOf(), 1, "ticketsIssued is not equal")
-        assert.equal(game[4].valueOf(), 0, "pb is not equal")
-        assert.equal(game[5][0].valueOf(), 0, "resultBalls is not equal")
+        // await lottery.purchase([5, 25, 28, 40, 60], 12, {value: web3.toWei('1', 'ether')})
+        //     .then(Utils.receiptShouldSucceed);
+        // game = await lottery.getGame.call(startGame);
+        // assert.equal(game[0].valueOf(), new BigNumber(web3.toWei('2', 'ether')).add(new BigNumber(web3.toWei('1', 'ether')).mul(0.8).mul(0.8)).valueOf(), "jp is not equal")
+        // assert.equal(game[1].valueOf(), new BigNumber(web3.toWei('1', 'ether')).mul(0.8).valueOf(), "collectedEthers is not equal")
+        // assert.equal(game[2].valueOf(), web3.toWei('0.0025', 'ether').valueOf(), "ticketPrice is not equal")
+        // assert.equal(game[3].valueOf(), 1, "ticketsIssued is not equal")
+        // assert.equal(game[4].valueOf(), 0, "pb is not equal")
+        // assert.equal(game[5][0].valueOf(), 0, "resultBalls is not equal")
 
     })
 
@@ -177,11 +178,11 @@ contract('BWLottery', function (accounts) {
         assert.equal(new BigNumber(await results.reservedAmount()).valueOf(), new BigNumber('80000000000000000').valueOf(), "reservedAmount is not equal")
         await results.claim(2)
         assert.equal(new BigNumber(await results.reservedAmount()).valueOf(), new BigNumber('80000000000000000').valueOf(), "reservedAmount is not equal")
-        console.log(new BigNumber(parseInt(new Date().getTime() / 1000)).sub(oneWeek).sub(30).sub(new BigNumber(parseInt(new Date().getTime() / 1000))).valueOf());
+        console.log(new BigNumber(parseInt(new Date().getTime() / 1000)).sub(threeDays).sub(30).sub(new BigNumber(parseInt(new Date().getTime() / 1000))).valueOf());
         assert.equal(await results.collectedEthers.call().valueOf(), new BigNumber('1600000000000000000').valueOf(), "collectedEthers is not equal")
         a = await  results.getContractBalance.call()
         assert.equal(a.valueOf(), web3.toWei('1.6', 'ether').valueOf(), "contract balance is not equal")
-        await results.withdrowPrize(new BigNumber(startGame).sub(oneWeek).add(200), 2)
+        await results.withdrowPrize(new BigNumber(startGame).sub(threeDays).add(200), 2)
             .then(Utils.receiptShouldSucceed);
         a = await  results.getContractBalance.call()
         assert.equal(a.valueOf(), new BigNumber(web3.toWei('1.6', 'ether')).sub("80000000000000000").valueOf(), "contract balance is not equal")

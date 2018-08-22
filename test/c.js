@@ -8,7 +8,7 @@ const Randomizer = artifacts.require("./test/BWRandomizerTest.sol");
 const Utils = require("./utils");
 const BigNumber = require('bignumber.js');
 let startGame = parseInt(new Date().getTime() / 1000),
-    oneWeek = 604800;
+    threeDays = 24*3*3600;
 
 contract('BWCachier', function (accounts) {
     let lottery,
@@ -29,7 +29,7 @@ contract('BWCachier', function (accounts) {
     beforeEach(async function () {
 
         management = await Management.new();
-        lottery = await Lottery.new(management.address, new BigNumber(startGame).sub(oneWeek).add(200));
+        lottery = await Lottery.new(management.address, new BigNumber(startGame).sub(threeDays).add(200));
         cashier = await Cashier.new(management.address, 10000, [fundation, BitWinsA, BitWinsB, Applicature, BitWinsC, BitWinsD], [40, 49, 49, 196, 686, 980]);
         combinations = await Combinations.new(management.address);
         results = await Results.new(management.address);

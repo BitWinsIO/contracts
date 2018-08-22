@@ -71,15 +71,14 @@ contract BWRandomizer is BWManaged, usingOraclize {
 
             // Using XPath to to fetch the right element in the JSON response
             randomQueryID += 1;
-            string memory queryString1 = '[URL] [\'json(https://api.random.org/json-rpc/1/invoke).result.random[\'serialNumber\',\'data\']\', \'\\n{\'jsonrpc\':\'2.0\',\'method\':\'generateSignedIntegers\',\'params\':{\'apiKey\':${[decrypt] BJ8BMENGnafmVci9OE5n98MGZRU624r/QWOQi90YwuZzHL2jaK2SCf5L38gsyD3kG4CS3sjZVLPdprfbo+L9lUXQtVJb/8SPIjkMU3lk943v60Co2+oLMVgSRtNKAAzHS6DJPeLOYaDHLhbCLORoUt2fPKSp87E=},\'n\':6,\'min\':1,\'max\':69,\'replacement\':true,\'base\':10${[identity] \'}\'},\'id\':';
-            string memory queryString2 = uint2str(randomQueryID);
-            string memory queryString3 = '${[identity] \'}\'}\']';
-
-            string memory queryString12 = queryString1.toSlice().concat(queryString2.toSlice());
-
-            string memory queryString123 = queryString12.toSlice().concat(queryString3.toSlice());
-
-            oraclize_query('nested', queryString123, gasForOraclize);
+            string memory string1 = "[URL] ['json(https://api.random.org/json-rpc/1/invoke).result.random.data', '\\n{\"jsonrpc\":\"2.0\",\"method\":\"generateSignedIntegers\",\"params\":{\"apiKey\":${[decrypt] BP/GT8fDh+lRNPRE4RWT/86Hcypys4kfapOzLwEHs56g4HrWhISOEKm+oKQy96i5rQnv2+mGbHNNTywqWslefgoRaYVFqXUB6cjEpKCK5XfZrDStmpftxmuO/Ekhqjj3cltH5BxYUO/PUIBzkpRECDTXP0ByjaM=},\"n\":6,\"min\":1,\"max\":";
+            string memory string2 = uint2str(69);
+            string memory string3 = ",\"replacement\":true,\"base\":10${[identity] \"}\"},\"id\":";
+            string memory query0 = strConcat(string1, string2, string3);
+            string memory string4 = uint2str(randomQueryID);
+            string memory string5 = "${[identity] \"}\"}']";
+            string memory query = strConcat(query0, string4, string5);
+            bytes32 rngId = oraclize_query("nested", query, gasForOraclize);
         }
 
     }
