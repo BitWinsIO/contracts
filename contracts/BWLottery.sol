@@ -3,7 +3,6 @@ pragma solidity 0.4.24;
 import 'openzeppelin-solidity/contracts/math/SafeMath.sol';
 import './BWManaged.sol';
 import './BWCashier.sol';
-import './BWCombinations.sol';
 import './BWResults.sol';
 
 
@@ -23,7 +22,6 @@ contract BWLottery is BWManaged {
         uint256 ticketsIssued;
         uint256 pb;
         uint256[5] resultBalls;
-        uint256[7] resultCombinations;
         mapping(uint256 => Ticket) tickets;
         mapping(uint256 => uint256) results; //comination key =>[tiketsID/ count
         //
@@ -63,11 +61,6 @@ contract BWLottery is BWManaged {
         lottery.ticketsIssued = ticketId;
         lottery.tickets[ticketId] = Ticket(_input, _powerBall, msg.sender);
 
-        BWCombinations combination = BWCombinations(management.contractRegistry(COMBINATIONS));
-        uint256[7] memory combinations = combination.calculateComb(_input, _powerBall);
-        for (uint256 i = 0; i < _input.length; i++) {
-            lottery.results[combinations[i]]++;
-        }
         emit TicketBought(activeGame, ticketId, _input, _powerBall);
         BWCashier cashier = BWCashier(management.contractRegistry(CASHIER));
         uint256 leftForPrizes = cashier.recordPurchase.value(msg.value)(activeGame, msg.sender);
@@ -84,8 +77,6 @@ contract BWLottery is BWManaged {
         require(lottery.pb == 0, ACCESS_DENIED);
         lottery.resultBalls = _input;
         lottery.pb = _pb;
-        BWCombinations combination = BWCombinations(management.contractRegistry(COMBINATIONS));
-        lottery.resultCombinations = combination.calculateComb(_input, _pb);
         prevGame = _gameId;
         activeGame = 0;
         if (management.autoStartNextGame()) {
@@ -118,8 +109,7 @@ contract BWLottery is BWManaged {
         uint256 price,
         uint256 ticketsIssued,
         uint256 pb,
-        uint256[5] resultBalls,
-        uint256[7] resultCombinations
+        uint256[5] resultBalls
     ) {
         Game storage lottery = lotteries[_time];
         if (_time < activeGame) {
@@ -133,7 +123,6 @@ contract BWLottery is BWManaged {
         ticketsIssued = lottery.ticketsIssued;
         pb = lottery.pb;
         resultBalls = lottery.resultBalls;
-        resultCombinations = lottery.resultCombinations;
     }
 
     function getGameResults(uint256 _time) public view returns (
@@ -180,8 +169,7 @@ contract BWLottery is BWManaged {
     function createGameInternal(uint256 _startTime) internal {
         require(activeGame.add(GAME_DURATION) <= _startTime);
         uint256[5] memory tmp;
-        uint256[7] memory tmp2;
-        lotteries[_startTime] = Game(0, 0, 0, tmp, tmp2);
+        lotteries[_startTime] = Game(0, 0, 0, tmp);
         if (prevGame > 0) {
 
         }

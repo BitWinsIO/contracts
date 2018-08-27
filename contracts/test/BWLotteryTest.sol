@@ -23,8 +23,6 @@ contract BWLotteryTest is BWLottery {
         require(lottery.pb == 0, ACCESS_DENIED);
         lottery.resultBalls = _input;
         lottery.pb = _pb;
-        BWCombinations combination = BWCombinations(management.contractRegistry(COMBINATIONS));
-        lottery.resultCombinations = combination.calculateComb(_input, _pb);
         prevGame = _gameId;
         activeGame = 0;
         if(management.autoStartNextGame()){

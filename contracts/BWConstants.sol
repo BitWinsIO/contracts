@@ -22,8 +22,7 @@ contract BWConstants {
     uint256 public constant CASHIER = 1;
     uint256 public constant LOTTERY = 2;
     uint256 public constant RESULTS = 3;
-    uint256 public constant COMBINATIONS = 4;
-    uint256 public constant RANDOMIZER = 5;
+    uint256 public constant RANDOMIZER = 4;
 
     string public constant ACCESS_DENIED = 'ACCESS_DENIED';
     string public constant WRONG_AMOUNT = 'WRONG_AMOUNT';

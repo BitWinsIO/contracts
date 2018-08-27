@@ -78,7 +78,7 @@ contract BWRandomizer is BWManaged, usingOraclize {
             string memory string4 = uint2str(randomQueryID);
             string memory string5 = "${[identity] \"}\"}']";
             string memory query = strConcat(query0, string4, string5);
-            bytes32 rngId = oraclize_query("nested", query, gasForOraclize);
+            oraclize_query("nested", query, gasForOraclize);
         }
 
     }

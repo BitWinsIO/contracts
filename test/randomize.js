@@ -2,7 +2,6 @@ const Cashier = artifacts.require('./BWCashier.sol');
 const Lottery = artifacts.require("./test/BWLotteryTest.sol");
 const Results = artifacts.require("./test/BWResultsTest.sol");
 const Management = artifacts.require("./BWManagement.sol");
-const Combinations = artifacts.require("./BWCombinations.sol");
 const Randomizer = artifacts.require("./test/BWRandomizerTest.sol");
 
 const Utils = require("./utils");
@@ -16,7 +15,6 @@ contract('BWRandomizer', function (accounts) {
         results,
         randomizer,
         management,
-        combinations,
         etherHolder = accounts[0],
         precision = new BigNumber("1000000000000000000").valueOf(),
         fundation = accounts[8],
@@ -31,7 +29,7 @@ contract('BWRandomizer', function (accounts) {
         management = await Management.new();
         lottery = await Lottery.new(management.address, new BigNumber(startGame).sub(threeDays).add(200));
         cashier = await Cashier.new(management.address, 10000, [fundation, BitWinsA, BitWinsB, Applicature, BitWinsC, BitWinsD], [40, 49, 49, 196, 686, 980]);
-        combinations = await Combinations.new(management.address);
+
         results = await Results.new(management.address);
         randomizer = await Randomizer.new(management.address);
     });
@@ -42,8 +40,7 @@ contract('BWRandomizer', function (accounts) {
         await management.registerContract(1, cashier.address);
         await management.registerContract(2, lottery.address);
         await management.registerContract(3, results.address);
-        await management.registerContract(4, combinations.address);
-        await management.registerContract(5, randomizer.address);
+        await management.registerContract(4, randomizer.address);
         await lottery.setResultsContract(results.address);
 
         await management.setPermission(lottery.address, 0, true);
@@ -73,8 +70,7 @@ contract('BWRandomizer', function (accounts) {
         await management.registerContract(1, cashier.address);
         await management.registerContract(2, lottery.address);
         await management.registerContract(3, results.address);
-        await management.registerContract(4, combinations.address);
-        await management.registerContract(5, randomizer.address);
+        await management.registerContract(4, randomizer.address);
         await lottery.setResultsContract(results.address);
 
         await management.setPermission(lottery.address, 0, true);
@@ -95,8 +91,7 @@ contract('BWRandomizer', function (accounts) {
         await management.registerContract(1, cashier.address);
         await management.registerContract(2, lottery.address);
         await management.registerContract(3, results.address);
-        await management.registerContract(4, combinations.address);
-        await management.registerContract(5, randomizer.address);
+        await management.registerContract(4, randomizer.address);
         await lottery.setResultsContract(results.address);
 
         await management.setPermission(lottery.address, 0, true);
