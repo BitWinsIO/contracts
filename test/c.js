@@ -40,7 +40,6 @@ contract('BWCachier', function (accounts) {
         await management.registerContract(2, lottery.address);
         await management.registerContract(3, results.address);
         await management.registerContract(4, randomizer.address);
-        await lottery.setResultsContract(results.address);
 
         await management.setPermission(lottery.address, 0, true);
         await management.setPermission(cashier.address, 3, true);
@@ -79,7 +78,7 @@ contract('BWCachier', function (accounts) {
         await management.registerContract(2, lottery.address);
         await management.registerContract(3, results.address);
         await management.registerContract(4, randomizer.address);
-        await lottery.setResultsContract(results.address);
+
 
         await management.setPermission(lottery.address, 0, true);
         await management.setPermission(cashier.address, 3, true);
@@ -124,7 +123,7 @@ contract('BWCachier', function (accounts) {
         await management.registerContract(2, lottery.address);
         await management.registerContract(3, results.address);
         await management.registerContract(4, randomizer.address);
-        await lottery.setResultsContract(results.address);
+
 
         await management.setPermission(lottery.address, 0, true);
         await management.setPermission(cashier.address, 3, true);

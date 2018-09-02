@@ -18,7 +18,7 @@ contract BWResultsTest is BWResults {
         uint256 winnersAmount;
         uint256 categoryId;
         (winnersAmount, categoryId) = lotteryContract.getResultsByTicketId(_gameTimestampedId, _ticketId);
-        lotteryContract.markTicketAsClaimed(_gameTimestampedId, _ticketId);
+        lotteryContract.markTicketAsWithdrawed(_gameTimestampedId, _ticketId);
         require(winnersAmount > 0);
         address ticketOwner = lotteryContract.getTicketOwnerById(_gameTimestampedId, _ticketId);
         uint256 value =  gameBalances[_gameTimestampedId].mul(management.payoutsPerCategory(categoryId)).div(100).div(winnersAmount);

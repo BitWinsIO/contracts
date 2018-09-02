@@ -40,7 +40,7 @@ contract('BWResults', function (accounts) {
         await management.registerContract(2, lottery.address);
         await management.registerContract(3, results.address);
         await management.registerContract(4, randomizer.address);
-        await lottery.setResultsContract(results.address);
+
 
         await management.setPermission(lottery.address, 0, true);
         await management.setPermission(cashier.address, 3, true);
@@ -61,24 +61,24 @@ contract('BWResults', function (accounts) {
         assert.equal(resultCheck.valueOf(), 0, "calculateResult is not equal")
     });
 
-    it("check increaseGameBalance", async function () {
+    it("check defineGameBalance", async function () {
         let activetime = new BigNumber(await lottery.activeGame.call()).valueOf();
         await management.registerContract(1, cashier.address);
         await management.registerContract(2, lottery.address);
         await management.registerContract(3, results.address);
         await management.registerContract(4, randomizer.address);
-        await lottery.setResultsContract(results.address);
+
 
         await management.setPermission(lottery.address, 0, true);
         await management.setPermission(cashier.address, 3, true);
 
-        await results.increaseGameBalance(activetime, {value: web3.toWei('0.0025', 'ether')})
+        await results.defineGameBalance(activetime, {value: web3.toWei('0.0025', 'ether')})
             .then(Utils.receiptShouldFailed).catch(Utils.catchReceiptShouldFailed);
         await management.setPermission(accounts[0], 3, true);
-        await results.increaseGameBalance(activetime, {value: web3.toWei('0.0025', 'ether')})
+        await results.defineGameBalance(activetime, {value: web3.toWei('0.0025', 'ether')})
             .then(Utils.receiptShouldSucceed);
         assert.equal(await results.gameBalances.call(activetime), web3.toWei('0.0025', 'ether'), 'gameBalances in not equal');
-        await results.increaseGameBalance(activetime, {value: web3.toWei('0.0025', 'ether')})
+        await results.defineGameBalance(activetime, {value: web3.toWei('0.0025', 'ether')})
             .then(Utils.receiptShouldFailed).catch(Utils.catchReceiptShouldFailed);
         assert.equal(await results.gameBalances.call(activetime), web3.toWei('0.0025', 'ether'), 'gameBalances in not equal');
 
@@ -91,13 +91,13 @@ contract('BWResults', function (accounts) {
 
     });
 
-    it("check claim & withdrowPrize", async function () {
+    it("check claim & withdrawPrize", async function () {
         let activetime = new BigNumber(await lottery.activeGame.call()).valueOf();
         await management.registerContract(1, cashier.address);
         await management.registerContract(2, lottery.address);
         await management.registerContract(3, results.address);
         await management.registerContract(4, randomizer.address);
-        await lottery.setResultsContract(results.address);
+
 
         await management.setPermission(lottery.address, 0, true);
         await management.setPermission(cashier.address, 3, true);
@@ -133,11 +133,11 @@ contract('BWResults', function (accounts) {
         //     .catch(Utils.catchReceiptShouldFailed)
         // a = await  results.getContractBalance.call()
         // assert.equal(a.valueOf(), new BigNumber (web3.toWei('0.01', 'ether')).mul(80).div(100).valueOf(), "contract balance is not equal")
-        // await  results.withdrowPrize( new BigNumber(startGame).sub(threeDays).add(200), 1)
+        // await  results.withdrawPrize( new BigNumber(startGame).sub(threeDays).add(200), 1)
         //     .then(Utils.receiptShouldSucceed);
         // // 0.01*0.8-0.01*0.8*0.05/2= 0.0078 // 0.0002
         // assert.equal(new BigNumber(await  results.getContractBalance.call()).valueOf(), new BigNumber(web3.toWei('0.01', 'ether')).mul(80).div(100).sub(web3.toWei('0.0002', 'ether')).valueOf(), "contract balance is not equal")
-        // await  results.withdrowPrize( new BigNumber(startGame).sub(threeDays).add(200), 3)
+        // await  results.withdrawPrize( new BigNumber(startGame).sub(threeDays).add(200), 3)
         //     .then(Utils.receiptShouldSucceed);
         // // 0.01*0.8-0.01*0.8*0.8 = 0.0016 // 0.0064
         // // 0.01*0.8 -0.0064-0.0002 =0.0014

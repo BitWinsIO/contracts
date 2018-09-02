@@ -41,7 +41,7 @@ contract('BWManagement', function (accounts) {
         await management.registerContract(2, lottery.address);
         await management.registerContract(3, results.address);
         await management.registerContract(4, randomizer.address);
-        await lottery.setResultsContract(results.address);
+
 
         await management.setPermission(lottery.address, 0, true);
         await management.setPermission(cashier.address, 3, true);
@@ -55,13 +55,13 @@ contract('BWManagement', function (accounts) {
             .then(Utils.receiptShouldFailed).catch(Utils.catchReceiptShouldFailed);
         assert.equal(await management.ticketPrice.call().valueOf(), web3.toWei('0.0028', 'ether').valueOf(), "price is not equal")
 
-        assert.equal(await management.maxBall.call().valueOf(), 69, "maxBall is not equal")
+        assert.equal(await management.maxBallNumber.call().valueOf(), 69, "maxBall is not equal")
         await management.setMaxBall(45);
         await management.setMaxBall(1, {from: accounts[0]})
             .then(Utils.receiptShouldFailed).catch(Utils.catchReceiptShouldFailed);
         await management.setMaxBall(50, {from: accounts[5]})
     .then(Utils.receiptShouldFailed).catch(Utils.catchReceiptShouldFailed);
-        assert.equal(await management.maxBall.call().valueOf(), 45, "maxBall is not equal")
+        assert.equal(await management.maxBallNumber.call().valueOf(), 45, "maxBall is not equal")
 
         assert.equal(await management.maxPowerBall.call().valueOf(), 26, "maxPBall is not equal")
         await management.setMaxPowerBall(45);

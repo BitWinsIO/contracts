@@ -106,9 +106,9 @@ contract BWLottery is BWManaged {
         canCallOnlyRegisteredContract(CONTRACT_RESULTS) {
         require(_gameTimestampedId != 0 && block.timestamp <= _gameTimestampedId.add(TIME_TO_CHECK_TICKET), ERROR_ACCESS_DENIED);
         Game storage game = games[_gameTimestampedId];
-        require(game.ticketToKey[_ticketId] == 0, ERROR_ACCESS_DENIED);
-        game.winnersPerLev[_category] = game.winnersPerLev[_category].add(1);
-        game.ticketToKey[_ticketId] = _category;
+        require(game.ticketsToCategories[_ticketId] == 0, ERROR_ACCESS_DENIED);
+        game.winersCounsPerCategory[_category] = game.winersCounsPerCategory[_category].add(1);
+        game.ticketsToCategories[_ticketId] = _category;
 
         emit WinnerLogged(_gameTimestampedId, _ticketId, _category);
     }
@@ -167,14 +167,14 @@ contract BWLottery is BWManaged {
 
     function getResultsByTicketId(uint256 _gameTimestampedId, uint256 _ticketId) public view returns (uint256, uint256) {
         Game storage game = games[_gameTimestampedId];
-        uint256 category = game.ticketToKey[_ticketId];
-        return (game.winnersPerLev[category], category);
+        uint256 category = game.ticketsToCategories[_ticketId];
+        return (game.winersCounsPerCategory[category], category);
     }
 
     function markTicketAsWithdrawed(uint256 _gameTimestampedId, uint256 _ticketId)
         public canCallOnlyRegisteredContract(CONTRACT_RESULTS) {
         Game storage game = games[_gameTimestampedId];
-        game.ticketToKey[_ticketId] = 0;
+        game.ticketsToCategories[_ticketId] = 0;
     }
 
     function createGameInternal(uint256 _startTime) internal {

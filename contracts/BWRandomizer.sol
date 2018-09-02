@@ -5,6 +5,7 @@ import 'installed_contracts/oraclize-api/contracts/usingOraclize.sol';
 import './BWManaged.sol';
 import './Strings.sol';
 import './BWLottery.sol';
+import './BWCashier.sol';
 
 
 contract BWRandomizer is BWManaged, usingOraclize {

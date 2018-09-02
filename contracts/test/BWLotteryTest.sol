@@ -19,7 +19,7 @@ contract BWLotteryTest is BWLottery {
 //        require(_gameTimestampedId.add(GAME_DURATION) <= block.timestamp, ERROR_ACCESS_DENIED);
         require(_powerBall >= MIN_NUMBER && _powerBall <= management.maxPowerBall(), ERROR_WRONG_AMOUNT);
         require(_input[0] >= MIN_NUMBER && _input[4] <= management.maxBallNumber(), ERROR_WRONG_AMOUNT);
-        Game storage game = lotteries[_gameTimestampedId];
+        Game storage game = games[_gameTimestampedId];
         require(game.powerBall == 0, ERROR_ACCESS_DENIED);
         game.resultBalls = _input;
         game.powerBall = _powerBall;
