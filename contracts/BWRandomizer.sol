@@ -18,15 +18,11 @@ contract BWRandomizer is BWManaged, usingOraclize {
 
     event LogInfo(string description);
     event LogRandomUpdate(string numbers);
-    event GameResult(uint256 gameId, uint256[5] numbers, uint256 pb);
+    event GameResult(uint256 gameTimestampedId, uint256[5] numbers, uint256 powerBall);
 
     constructor(address _management) public BWManaged(_management) {
         /* init gas price for callback (default 20 gwei)*/
         oraclize_setCustomGasPrice(20000000000 wei);
-    }
-
-    function() public payable {
-        revert();
     }
 
     function random() public payable {
@@ -42,13 +38,14 @@ contract BWRandomizer is BWManaged, usingOraclize {
             randomInt[i] = parseInt(slResult.split(', '.toSlice()).toString());
         }
         insertionSortMemory(randomInt);
-        uint256 pb = parseInt(slResult.split(', '.toSlice()).toString()) % management.maxPowerBall();
-        BWLottery lottery = BWLottery(management.contractRegistry(LOTTERY));
-        uint256 gameId = lottery.activeGame();
-        require(block.timestamp <= gameId.add(GAME_DURATION), ACCESS_DENIED);
-        lottery.setGameResult(gameId, randomInt, pb);
-        BWCashier cashier = BWCashier(management.contractRegistry(CASHIER));
-        cashier.setGameBalance(gameId);
+        ///@todo Do you parse number 6 from “1,2,3,4,5,6“?
+        uint256 powerBall = parseInt(slResult.split(', '.toSlice()).toString()) % management.maxPowerBall();
+        BWLottery lottery = BWLottery(management.contractRegistry(CONTRACT_LOTTERY));
+        uint256 gameTimestampedId = lottery.activeGame();
+        require(block.timestamp <= gameTimestampedId.add(GAME_DURATION), ERROR_ACCESS_DENIED);
+        lottery.setGameResult(gameTimestampedId, randomInt, powerBall);
+        BWCashier cashier = BWCashier(management.contractRegistry(CONTRACT_CASHIER));
+        cashier.setGameBalance(gameTimestampedId);
         emit LogRandomUpdate(result);
     }
 
@@ -67,10 +64,9 @@ contract BWRandomizer is BWManaged, usingOraclize {
         if (oraclize_getPrice('URL') > address(this).balance) {
             emit LogInfo('Oraclize query was NOT sent, please add some ETH to cover for the query fee');
         } else {
-            emit LogInfo('Oraclize query was sent, standing by for the answer..');
-
             // Using XPath to to fetch the right element in the JSON response
             randomQueryID += 1;
+            //@todo define own API-key
             string memory string1 = "[URL] ['json(https://api.random.org/json-rpc/1/invoke).result.random.data', '\\n{\"jsonrpc\":\"2.0\",\"method\":\"generateSignedIntegers\",\"params\":{\"apiKey\":${[decrypt] BP/GT8fDh+lRNPRE4RWT/86Hcypys4kfapOzLwEHs56g4HrWhISOEKm+oKQy96i5rQnv2+mGbHNNTywqWslefgoRaYVFqXUB6cjEpKCK5XfZrDStmpftxmuO/Ekhqjj3cltH5BxYUO/PUIBzkpRECDTXP0ByjaM=},\"n\":6,\"min\":1,\"max\":";
             string memory string2 = uint2str(69);
             string memory string3 = ",\"replacement\":true,\"base\":10${[identity] \"}\"},\"id\":";
@@ -79,6 +75,7 @@ contract BWRandomizer is BWManaged, usingOraclize {
             string memory string5 = "${[identity] \"}\"}']";
             string memory query = strConcat(query0, string4, string5);
             oraclize_query("nested", query, gasForOraclize);
+            emit LogInfo('Oraclize query was sent, standing by for the answer..');
         }
 
     }

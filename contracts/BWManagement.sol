@@ -5,10 +5,11 @@ import './BWConstants.sol';
 
 contract BWManagement is Ownable, BWConstants {
 
+    //autostart new game when owner sets results
     bool public autoStartNextGame = true;
 
     uint256 public ticketPrice = 0.0025 ether;
-    uint256 public maxBall = 69;
+    uint256 public maxBallNumber = 69;
     uint256 public maxPowerBall = 26;
     mapping(uint256 => uint256) public payoutsPerCategory;
 
@@ -49,12 +50,12 @@ contract BWManagement is Ownable, BWConstants {
     }
 
     function setMaxBall(uint256 _newVal) public onlyOwner {
-        require(_newVal > MIN_NUMBER, WRONG_AMOUNT);
-        maxBall = _newVal;
+        require(_newVal > MIN_NUMBER, ERROR_WRONG_AMOUNT);
+        maxBallNumber = _newVal;
     }
 
     function setMaxPowerBall(uint256 _newVal) public onlyOwner {
-        require(_newVal > MIN_NUMBER, WRONG_AMOUNT);
+        require(_newVal > MIN_NUMBER, ERROR_WRONG_AMOUNT);
         maxPowerBall = _newVal;
     }
 
@@ -63,7 +64,7 @@ contract BWManagement is Ownable, BWConstants {
     }
 
     function setPayoutsPerCategory(uint256 _categoryId, uint256 _value) public onlyOwner {
-        require(_value <= 100, WRONG_AMOUNT);
+        require(_value <= 100, ERROR_WRONG_AMOUNT);
         payoutsPerCategory[_categoryId] = _value;
     }
 

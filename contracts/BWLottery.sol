@@ -4,6 +4,7 @@ import 'openzeppelin-solidity/contracts/math/SafeMath.sol';
 import './BWManaged.sol';
 import './BWCashier.sol';
 import './BWResults.sol';
+import './BWRandomizer.sol';
 
 
 contract BWLottery is BWManaged {
@@ -12,26 +13,31 @@ contract BWLottery is BWManaged {
 
     uint256 public prevGame;
     uint256 public activeGame;
-    BWResults public resultContract;
 
     //timestamp => struct
-    mapping(uint256 => Game) public lotteries;
+    mapping(uint256 => Game) public games;
 
     struct Game {
         uint256 collectedEthers;
         uint256 ticketsIssued;
-        uint256 pb;
+        uint256 powerBall;
         uint256[5] resultBalls;
         mapping(uint256 => Ticket) tickets;
-        mapping(uint256 => uint256) results; //comination key =>[tiketsID/ count
+        mapping(uint256 => uint256) results; //comination CategoryKey =>[tikets count
         //
-        mapping(uint256 => uint256) winnersPerLev;
-        mapping(uint256 => uint256) ticketToKey;
+        mapping(uint256 => uint256) winersCounsPerCategory;
+        mapping(uint256 => uint256) ticketsToCategories;
 
     }
 
-    event WinnerLogged(uint256 gameId, uint256 ticketId, uint256 prize);
-    event TicketBought(uint256 gameId, uint256 ticketId, uint256[5] balls, uint256 pb);
+    event WinnerLogged(uint256 gameTimestampedId, uint256 ticketId, uint256 prize);
+    event TicketBought(
+        uint256 gameTimestampedId,
+        uint256 ticketId,
+        address ticketOwner,
+        uint256[5] balls,
+        uint256 powerBall
+    );
 
     struct Ticket {
         uint256[5] balls;
@@ -46,133 +52,135 @@ contract BWLottery is BWManaged {
         createGameInternal(_firstGameStartAt);
     }
 
-    function purchase(uint256[5] _input, uint256 _powerBall) public payable requireRegisteredContract(CASHIER) {
-        require(activeGame > 0, NO_ACTIVE_LOTTERY);
-        require(!isContract(msg.sender), ACCESS_DENIED);
-        require(block.timestamp <= activeGame.add(GAME_DURATION), ACCESS_DENIED);
-        require(_input[0] >= MIN_NUMBER && _input[4] <= management.maxBall(), WRONG_AMOUNT);
-        require(_powerBall >= MIN_NUMBER && _powerBall <= management.maxPowerBall(), WRONG_AMOUNT);
+    function purchase(uint256[5] _input, uint256 _powerBall)
+        public payable requireContractExistsInRegistry(CONTRACT_CASHIER) {
 
-        Game storage lottery = lotteries[activeGame];
+        require(activeGame > 0, ERROR_NO_ACTIVE_LOTTERY);
+        require(!isContract(msg.sender), ERROR_ACCESS_DENIED);
+        require(block.timestamp <= activeGame.add(GAME_DURATION), ERROR_ACCESS_DENIED);
+        require(_powerBall >= MIN_NUMBER && _powerBall <= management.maxPowerBall(), ERROR_WRONG_AMOUNT);
 
-        require((management.ticketPrice() <= msg.value), WRONG_AMOUNT);
+        BWRandomizer(management.contractRegistry(CONTRACT_RANDOMIZER)).insertionSortMemory(_input);
+        require(_input[0] >= MIN_NUMBER && _input[4] <= management.maxBallNumber(), ERROR_WRONG_AMOUNT);
 
-        uint256 ticketId = lottery.ticketsIssued.add(1);
-        lottery.ticketsIssued = ticketId;
-        lottery.tickets[ticketId] = Ticket(_input, _powerBall, msg.sender);
+        Game storage game = games[activeGame];
 
-        emit TicketBought(activeGame, ticketId, _input, _powerBall);
-        BWCashier cashier = BWCashier(management.contractRegistry(CASHIER));
+        require((management.ticketPrice() == msg.value), ERROR_WRONG_AMOUNT);
+
+        uint256 ticketId = game.ticketsIssued.add(1);
+        game.ticketsIssued = ticketId;
+        game.tickets[ticketId] = Ticket(_input, _powerBall, msg.sender);
+
+        emit TicketBought(activeGame, ticketId, msg.sender, _input, _powerBall);
+        BWCashier cashier = BWCashier(management.contractRegistry(CONTRACT_CASHIER));
         uint256 leftForPrizes = cashier.recordPurchase.value(msg.value)(activeGame, msg.sender);
-        lottery.collectedEthers = lottery.collectedEthers.add(leftForPrizes);
+        game.collectedEthers = game.collectedEthers.add(leftForPrizes);
     }
 
-    function setGameResult(uint256 _gameId, uint256[5] _input, uint256 _pb) public requireRegisteredContract(CASHIER) {
-        require(activeGame > 0, ACCESS_DENIED);
-        require(msg.sender == management.contractRegistry(RANDOMIZER), ACCESS_DENIED);
-        require(_gameId.add(GAME_DURATION) <= block.timestamp, ACCESS_DENIED);
-        require(_pb >= MIN_NUMBER && _pb <= management.maxPowerBall(), WRONG_AMOUNT);
-        require(_input[0] >= MIN_NUMBER && _input[4] <= management.maxBall(), WRONG_AMOUNT);
-        Game storage lottery = lotteries[_gameId];
-        require(lottery.pb == 0, ACCESS_DENIED);
-        lottery.resultBalls = _input;
-        lottery.pb = _pb;
-        prevGame = _gameId;
+    function setGameResult(uint256 _gameTimestampedId, uint256[5] _input, uint256 _powerBall)
+        public requireContractExistsInRegistry(CONTRACT_CASHIER)
+        canCallOnlyRegisteredContract(CONTRACT_RANDOMIZER) {
+        require(activeGame > 0, ERROR_ACCESS_DENIED);
+        require(_gameTimestampedId.add(GAME_DURATION) <= block.timestamp, ERROR_ACCESS_DENIED);
+        require(_powerBall >= MIN_NUMBER && _powerBall <= management.maxPowerBall(), ERROR_WRONG_AMOUNT);
+
+        BWRandomizer(management.contractRegistry(CONTRACT_RANDOMIZER)).insertionSortMemory(_input);
+        require(_input[0] >= MIN_NUMBER && _input[4] <= management.maxBallNumber(), ERROR_WRONG_AMOUNT);
+        Game storage game = games[_gameTimestampedId];
+        require(game.powerBall == 0, ERROR_ACCESS_DENIED);
+        game.resultBalls = _input;
+        game.powerBall = _powerBall;
+        prevGame = _gameTimestampedId;
         activeGame = 0;
         if (management.autoStartNextGame()) {
             createGameInternal(block.timestamp);
         }
     }
 
-    function setResultsContract(BWResults _results) public onlyOwner {
-        require(_results == management.contractRegistry(RESULTS), ACCESS_DENIED);
-        resultContract = BWResults(_results);
-    }
-
     function createGame(uint256 _startTime) public onlyOwner {
         createGameInternal(_startTime);
     }
 
-    function saveClaim(uint256 _gameId, uint256 _category, uint256 _ticketId) public requireRegisteredContract(RESULTS) {
-        require(_gameId != 0 && block.timestamp <= _gameId.add(TIME_TO_CHECK_TICKET), ACCESS_DENIED);
-        Game storage lottery = lotteries[_gameId];
-        if (lottery.ticketToKey[_ticketId] == 0) {
-            lottery.winnersPerLev[_category] = lottery.winnersPerLev[_category].add(1);
-            lottery.ticketToKey[_ticketId] = _category;
-        }
-        emit WinnerLogged(_gameId, _ticketId, _category);
+    function saveClaim(uint256 _gameTimestampedId, uint256 _category, uint256 _ticketId)
+        public requireContractExistsInRegistry(CONTRACT_RESULTS)
+        canCallOnlyRegisteredContract(CONTRACT_RESULTS) {
+        require(_gameTimestampedId != 0 && block.timestamp <= _gameTimestampedId.add(TIME_TO_CHECK_TICKET), ERROR_ACCESS_DENIED);
+        Game storage game = games[_gameTimestampedId];
+        require(game.ticketToKey[_ticketId] == 0, ERROR_ACCESS_DENIED);
+        game.winnersPerLev[_category] = game.winnersPerLev[_category].add(1);
+        game.ticketToKey[_ticketId] = _category;
+
+        emit WinnerLogged(_gameTimestampedId, _ticketId, _category);
     }
 
-    function getGame(uint256 _time) public view returns (
+    function getGame(uint256 _gameTimestampedId) public view returns (
         uint256 jp,
         uint256 collectedEthers,
         uint256 price,
         uint256 ticketsIssued,
-        uint256 pb,
+        uint256 powerBall,
         uint256[5] resultBalls
     ) {
-        Game storage lottery = lotteries[_time];
-        if (_time < activeGame) {
-            jp = resultContract.gameBalances(_time).mul(management.payoutsPerCategory(JACKPOT)).div(100);
+        Game storage game = games[_gameTimestampedId];
+        BWResults resultContract = BWResults(management.contractRegistry(CONTRACT_RESULTS));
+        if (_gameTimestampedId < activeGame) {
+            jp = resultContract.gameBalances(_gameTimestampedId).mul(management.payoutsPerCategory(JACKPOT)).div(100);
         } else {
-            jp = lottery.collectedEthers.mul(management.payoutsPerCategory(JACKPOT)).div(100)
+            jp = game.collectedEthers.mul(management.payoutsPerCategory(JACKPOT)).div(100)
             .add(resultContract.collectedEthers().sub(resultContract.reservedAmount()));
         }
-        collectedEthers = lottery.collectedEthers;
+        collectedEthers = game.collectedEthers;
         price = management.ticketPrice();
-        ticketsIssued = lottery.ticketsIssued;
-        pb = lottery.pb;
-        resultBalls = lottery.resultBalls;
+        ticketsIssued = game.ticketsIssued;
+        powerBall = game.powerBall;
+        resultBalls = game.resultBalls;
     }
 
-    function getGameResults(uint256 _time) public view returns (
+    function getGameResults(uint256 _gameTimestampedId) public view returns (
         uint256[5] resultBalls,
-        uint256 pb
+        uint256 powerBall
     ) {
-        Game memory lottery = lotteries[_time];
-        resultBalls = lottery.resultBalls;
-        pb = lottery.pb;
+        Game memory game = games[_gameTimestampedId];
+        resultBalls = game.resultBalls;
+        powerBall = game.powerBall;
     }
 
-    function getGameTicketById(uint256 _time, uint256 _ticketId) public view returns (
+    function getGameTicketById(uint256 _gameTimestampedId, uint256 _ticketId) public view returns (
         uint256[5] balls,
         uint256 powerBall,
         address owner
     ) {
-        Game storage lottery = lotteries[_time];
-        Ticket memory ticket = lottery.tickets[_ticketId];
+        Game storage game = games[_gameTimestampedId];
+        Ticket memory ticket = game.tickets[_ticketId];
         balls = ticket.balls;
         powerBall = ticket.powerBall;
         owner = ticket.owner;
     }
 
-    function getTicketOwnerById(uint256 _time, uint256 _ticketId) public view returns (
+    function getTicketOwnerById(uint256 _gameTimestampedId, uint256 _ticketId) public view returns (
         address owner
     ) {
-        Game storage lottery = lotteries[_time];
-        Ticket memory ticket = lottery.tickets[_ticketId];
+        Game storage game = games[_gameTimestampedId];
+        Ticket memory ticket = game.tickets[_ticketId];
         owner = ticket.owner;
     }
 
-    function getResultsByTicketId(uint256 _time, uint256 _ticketId) public view returns (uint256, uint256) {
-        Game storage lottery = lotteries[_time];
-        uint256 category = lottery.ticketToKey[_ticketId];
-        return (lottery.winnersPerLev[category], category);
+    function getResultsByTicketId(uint256 _gameTimestampedId, uint256 _ticketId) public view returns (uint256, uint256) {
+        Game storage game = games[_gameTimestampedId];
+        uint256 category = game.ticketToKey[_ticketId];
+        return (game.winnersPerLev[category], category);
     }
 
-    function markTickedAsClaimed(uint256 _time, uint256 _ticketId) public returns (uint256) {
-        require(msg.sender == management.contractRegistry(RESULTS), ACCESS_DENIED);
-        Game storage lottery = lotteries[_time];
-        lottery.ticketToKey[_ticketId] = 0;
+    function markTicketAsWithdrawed(uint256 _gameTimestampedId, uint256 _ticketId)
+        public canCallOnlyRegisteredContract(CONTRACT_RESULTS) {
+        Game storage game = games[_gameTimestampedId];
+        game.ticketToKey[_ticketId] = 0;
     }
 
     function createGameInternal(uint256 _startTime) internal {
         require(activeGame.add(GAME_DURATION) <= _startTime);
         uint256[5] memory tmp;
-        lotteries[_startTime] = Game(0, 0, 0, tmp);
-        if (prevGame > 0) {
-
-        }
+        games[_startTime] = Game(0, 0, 0, tmp);
         activeGame = _startTime;
     }
 

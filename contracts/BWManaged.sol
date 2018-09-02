@@ -10,17 +10,17 @@ contract BWManaged is Ownable, BWConstants {
     BWManagement public management;
 
     modifier requirePermission(uint8 _permissionBit) {
-        require(hasPermission(msg.sender, _permissionBit), ACCESS_DENIED);
+        require(hasPermission(msg.sender, _permissionBit), ERROR_ACCESS_DENIED);
         _;
     }
 
-    modifier onlyRegistered(uint256 _key) {
-        require(msg.sender == management.contractRegistry(_key), ACCESS_DENIED);
+    modifier canCallOnlyRegisteredContract(uint256 _key) {
+        require(msg.sender == management.contractRegistry(_key), ERROR_ACCESS_DENIED);
         _;
     }
 
-    modifier requireRegisteredContract(uint256 _key) {
-        require(management.contractRegistry(_key) != address(0), NO_CONTRACT);
+    modifier requireContractExistsInRegistry(uint256 _key) {
+        require(management.contractRegistry(_key) != address(0), ERROR_NO_CONTRACT);
         _;
     }
 

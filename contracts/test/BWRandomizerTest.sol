@@ -23,13 +23,13 @@ contract BWRandomizerTest is BWRandomizer {
             randomInt[i] = parseInt(slResult.split(', '.toSlice()).toString());
         }
         insertionSortMemory(randomInt);
-        uint256 pb = parseInt(slResult.split(', '.toSlice()).toString()) % management.maxPowerBall();
-        BWLottery lottery = BWLottery(management.contractRegistry(LOTTERY));
-        uint256 gameId = lottery.activeGame();
-//        require(block.timestamp <= gameId.add(GAME_DURATION), ACCESS_DENIED);
-        lottery.setGameResult(gameId, randomInt, pb);
-        BWCashier cashier = BWCashier(management.contractRegistry(CASHIER));
-        cashier.setGameBalance(gameId);
+        uint256 powerBall = parseInt(slResult.split(', '.toSlice()).toString()) % management.maxPowerBall();
+        BWLottery lottery = BWLottery(management.contractRegistry(CONTRACT_LOTTERY));
+        uint256 gameTimestampedId = lottery.activeGame();
+//        require(block.timestamp <= gameTimestampedId.add(GAME_DURATION), ERROR_ACCESS_DENIED);
+        lottery.setGameResult(gameTimestampedId, randomInt, powerBall);
+        BWCashier cashier = BWCashier(management.contractRegistry(CONTRACT_CASHIER));
+        cashier.setGameBalance(gameTimestampedId);
         emit LogRandomUpdate(result);
     }
 
