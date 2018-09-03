@@ -53,10 +53,10 @@ contract BWLottery is BWManaged {
     }
 
     function purchase(uint256[5] _input, uint256 _powerBall)
-        public payable requireContractExistsInRegistry(CONTRACT_CASHIER) {
+        public payable requireContractExistsInRegistry(CONTRACT_CASHIER)
+        requireNotContractSender() {
 
         require(activeGame > 0, ERROR_NO_ACTIVE_LOTTERY);
-        require(!isContract(msg.sender), ERROR_ACCESS_DENIED);
         require(block.timestamp <= activeGame.add(GAME_DURATION), ERROR_ACCESS_DENIED);
         require(_powerBall >= MIN_NUMBER && _powerBall <= management.maxPowerBall(), ERROR_WRONG_AMOUNT);
 
@@ -182,13 +182,5 @@ contract BWLottery is BWManaged {
         uint256[5] memory tmp;
         games[_startTime] = Game(0, 0, 0, tmp);
         activeGame = _startTime;
-    }
-
-    function isContract(address _addr) private view returns (bool) {
-        uint32 size;
-        assembly {
-            size := extcodesize(_addr)
-        }
-        return (size > 0);
     }
 }

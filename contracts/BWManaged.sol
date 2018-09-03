@@ -24,6 +24,11 @@ contract BWManaged is Ownable, BWConstants {
         _;
     }
 
+    modifier requireNotContractSender() {
+        require(isContract(msg.sender) == false, ERROR_ACCESS_DENIED);
+        _;
+    }
+
     constructor(address _managementAddress) public {
         management = BWManagement(_managementAddress);
     }
@@ -36,5 +41,13 @@ contract BWManaged is Ownable, BWConstants {
 
     function hasPermission(address _subject, uint256 _permissionBit) internal view returns (bool) {
         return management.permissions(_subject, _permissionBit);
+    }
+
+    function isContract(address _addr) private view returns (bool) {
+        uint32 size;
+        assembly {
+            size := extcodesize(_addr)
+        }
+        return (size > 0);
     }
 }

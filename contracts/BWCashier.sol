@@ -70,8 +70,8 @@ contract BWCashier is BWManaged {
     }
 
     function updateEtherHolderPercentages(uint256 _index, uint256 _newValue)
-        public onlyOwner indexMeetSpecifiedRange(_index) {
-        require(!isContract(msg.sender), ERROR_ACCESS_DENIED);
+        public onlyOwner indexMeetSpecifiedRange(_index)
+        requireNotContractSender() {
         require(_newValue <= proportionAbsMax, ERROR_ACCESS_DENIED);
         uint256 percentagesUsed;
         for (uint256 i = 0; i < percentages.length; i++) {
@@ -81,13 +81,5 @@ contract BWCashier is BWManaged {
         }
         require(percentagesUsed.add(_newValue) <= proportionAbsMax, ERROR_WRONG_AMOUNT);
         percentages[_index] = _newValue;
-    }
-
-    function isContract(address _addr) private view returns (bool) {
-        uint32 size;
-        assembly {
-            size := extcodesize(_addr)
-        }
-        return (size > 0);
     }
 }
