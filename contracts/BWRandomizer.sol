@@ -66,8 +66,8 @@ contract BWRandomizer is BWManaged, usingOraclize {
         } else {
             // Using XPath to to fetch the right element in the JSON response
             randomQueryID += 1;
-            //@todo define own API-key
-            string memory string1 = "[URL] ['json(https://api.random.org/json-rpc/1/invoke).result.random.data', '\\n{\"jsonrpc\":\"2.0\",\"method\":\"generateSignedIntegers\",\"params\":{\"apiKey\":${[decrypt] BP/GT8fDh+lRNPRE4RWT/86Hcypys4kfapOzLwEHs56g4HrWhISOEKm+oKQy96i5rQnv2+mGbHNNTywqWslefgoRaYVFqXUB6cjEpKCK5XfZrDStmpftxmuO/Ekhqjj3cltH5BxYUO/PUIBzkpRECDTXP0ByjaM=},\"n\":6,\"min\":1,\"max\":";
+            // encoded with https://github.com/oraclize/encrypted-queries/issues/3
+            string memory string1 = "[URL] ['json(https://api.random.org/json-rpc/1/invoke).result.random.data', '\\n{\"jsonrpc\":\"2.0\",\"method\":\"generateSignedIntegers\",\"params\":{\"apiKey\":${[decrypt] BKk2Pxt1G3j/TRTMH6sJeNDZ+P+3S6/KbyIxI0qGAHouNWh/5RdRixsSz0G4aIv1Zgz9AZLbVMqwI9RQ6EjSzyrtvWAVVxbfG6fDKiRifA9ai3zdFh1R4BHXps+/CAepLtDmzHS/tVKfvYo4sKkqQQXED+z/Qmc=},\"n\":6,\"min\":1,\"max\":";
             string memory string2 = uint2str(69);
             string memory string3 = ",\"replacement\":true,\"base\":10${[identity] \"}\"},\"id\":";
             string memory query0 = strConcat(string1, string2, string3);
