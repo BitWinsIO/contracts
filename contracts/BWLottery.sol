@@ -52,6 +52,7 @@ contract BWLottery is BWManaged {
         createGameInternal(_firstGameStartAt);
     }
 
+
     function purchase(uint256[5] _input, uint256 _powerBall)
         public payable requireContractExistsInRegistry(CONTRACT_CASHIER)
         requireNotContractSender() {
@@ -60,7 +61,7 @@ contract BWLottery is BWManaged {
         require(block.timestamp <= activeGame.add(GAME_DURATION), ERROR_ACCESS_DENIED);
         require(_powerBall >= MIN_NUMBER && _powerBall <= management.maxPowerBall(), ERROR_WRONG_AMOUNT);
 
-        BWRandomizer(management.contractRegistry(CONTRACT_RANDOMIZER)).insertionSortMemory(_input);
+        insertionSortMemory(_input);
         require(_input[0] >= MIN_NUMBER && _input[4] <= management.maxBallNumber(), ERROR_WRONG_AMOUNT);
 
         Game storage game = games[activeGame];
@@ -81,7 +82,7 @@ contract BWLottery is BWManaged {
         require(_gameTimestampedId.add(GAME_DURATION) <= block.timestamp, ERROR_ACCESS_DENIED);
         require(_powerBall >= MIN_NUMBER && _powerBall <= management.maxPowerBall(), ERROR_WRONG_AMOUNT);
 
-        BWRandomizer(management.contractRegistry(CONTRACT_RANDOMIZER)).insertionSortMemory(_input);
+        insertionSortMemory(_input);
         require(_input[0] >= MIN_NUMBER && _input[4] <= management.maxBallNumber(), ERROR_WRONG_AMOUNT);
         Game storage game = games[_gameTimestampedId];
         require(game.powerBall == 0, ERROR_ACCESS_DENIED);
@@ -175,9 +176,22 @@ contract BWLottery is BWManaged {
     }
 
     function createGameInternal(uint256 _startTime) internal {
-        require(activeGame.add(GAME_DURATION) <= _startTime);
+        require(activeGame.add(GAME_DURATION) <= _startTime, ERROR_NOT_AVAILABLE);
         uint256[5] memory tmp;
         games[_startTime] = Game(0, 0, 0, tmp);
         activeGame = _startTime;
+    }
+
+    function insertionSortMemory(uint256[5] a) public pure returns (uint256[5]) {
+        for (uint256 i = 0; i < a.length; i++) {
+            uint256 j = i;
+            while (j > 0 && a[j] < a[j - 1]) {
+                uint256 temp = a[j];
+                a[j] = a[j - 1];
+                a[j - 1] = temp;
+                j--;
+            }
+        }
+        return a;
     }
 }

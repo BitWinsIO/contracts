@@ -50,4 +50,17 @@ contract BWManaged is Ownable, BWConstants {
         }
         return (size > 0);
     }
+
+    function insertionSortMemory(uint256[5] a) public pure returns (uint256[5]) {
+        for (uint256 i = 0; i < a.length; i++) {
+            uint256 j = i;
+            while (j > 0 && a[j] < a[j - 1]) {
+                uint256 temp = a[j];
+                a[j] = a[j - 1];
+                a[j - 1] = temp;
+                j--;
+            }
+        }
+        return a;
+    }
 }

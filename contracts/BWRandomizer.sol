@@ -32,7 +32,7 @@ contract BWRandomizer is BWManaged, usingOraclize {
 
     function __callback(bytes32, string result) public {
         uint256[5] memory randomInt;
-        require(msg.sender == oraclize_cbAddress());
+        require(msg.sender == oraclize_cbAddress(), ERROR_ACCESS_DENIED);
         var slResult = result.toSlice();
         slResult.beyond('['.toSlice()).until(']'.toSlice());
         for (uint256 i = 0; i < 5; i++) {
@@ -79,18 +79,4 @@ contract BWRandomizer is BWManaged, usingOraclize {
         }
 
     }
-
-    function insertionSortMemory(uint256[5] a) public pure returns (uint256[5]) {
-        for (uint256 i = 0; i < a.length; i++) {
-            uint256 j = i;
-            while (j > 0 && a[j] < a[j - 1]) {
-                uint256 temp = a[j];
-                a[j] = a[j - 1];
-                a[j - 1] = temp;
-                j--;
-            }
-        }
-        return a;
-    }
-
 }
