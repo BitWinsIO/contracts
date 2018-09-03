@@ -39,7 +39,6 @@ contract BWRandomizer is BWManaged, usingOraclize {
             randomInt[i] = parseInt(slResult.split(', '.toSlice()).toString());
         }
         insertionSortMemory(randomInt);
-        ///@todo Do you parse number 6 from “1,2,3,4,5,6“?
         uint256 powerBall = parseInt(slResult.split(', '.toSlice()).toString()) % management.maxPowerBall();
         BWLottery lottery = BWLottery(management.contractRegistry(CONTRACT_LOTTERY));
         uint256 gameTimestampedId = lottery.activeGame();
