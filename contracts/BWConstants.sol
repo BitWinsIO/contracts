@@ -9,12 +9,12 @@ contract BWConstants {
     uint8 public constant CAN_RECORD_HASH = 2;
     uint8 public constant CAN_INCREASE_GAME_BALANCE = 3;
 
-    
-    uint256 public constant  MIN_NUMBER = 1; // min number on the ball
-    uint256 public constant  GAME_DURATION = 7 days;
-    uint256 public constant  TIME_TO_CHECK_TICKET = 3 days;
-    uint256 public constant  TIME_TO_CLAIM_PRIZE = 7 days;
+    uint256 public constant MIN_NUMBER = 1; // min number on the ball
+    uint256 public constant GAME_DURATION = 7 days;
+    uint256 public constant TIME_TO_CHECK_TICKET = 3 days;
+    uint256 public constant TIME_TO_CLAIM_PRIZE = 7 days;
 
+    // prize categories
     uint256 public constant JACKPOT = 1;
     uint256 public constant FIVE = 2;
     uint256 public constant FOUR_PB = 3;

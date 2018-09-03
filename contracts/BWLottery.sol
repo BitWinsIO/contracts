@@ -23,11 +23,17 @@ contract BWLottery is BWManaged {
         uint256 powerBall;
         uint256[5] resultBalls;
         mapping(uint256 => Ticket) tickets;
-        mapping(uint256 => uint256) results; //comination CategoryKey =>[tikets count
+        mapping(uint256 => uint256) results; //combination CategoryKey =>[tikets count
         //
-        mapping(uint256 => uint256) winersCounsPerCategory;
+        mapping(uint256 => uint256) winnersCounsPerCategory;
         mapping(uint256 => uint256) ticketsToCategories;
 
+    }
+
+    struct Ticket {
+        uint256[5] balls;
+        uint256 powerBall;
+        address owner;
     }
 
     event WinnerLogged(uint256 gameTimestampedId, uint256 ticketId, uint256 prize);
@@ -39,12 +45,6 @@ contract BWLottery is BWManaged {
         uint256 powerBall
     );
 
-    struct Ticket {
-        uint256[5] balls;
-        uint256 powerBall;
-        address owner;
-    }
-
     constructor(
         address _management,
         uint256 _firstGameStartAt
@@ -55,7 +55,7 @@ contract BWLottery is BWManaged {
     function purchase(uint256[5] _input, uint256 _powerBall)
         public payable requireContractExistsInRegistry(CONTRACT_CASHIER)
         requireNotContractSender() {
-
+        require((management.ticketPrice() == msg.value), ERROR_WRONG_AMOUNT);
         require(activeGame > 0, ERROR_NO_ACTIVE_LOTTERY);
         require(block.timestamp <= activeGame.add(GAME_DURATION), ERROR_ACCESS_DENIED);
         require(_powerBall >= MIN_NUMBER && _powerBall <= management.maxPowerBall(), ERROR_WRONG_AMOUNT);
@@ -64,9 +64,6 @@ contract BWLottery is BWManaged {
         require(_input[0] >= MIN_NUMBER && _input[4] <= management.maxBallNumber(), ERROR_WRONG_AMOUNT);
 
         Game storage game = games[activeGame];
-
-        require((management.ticketPrice() == msg.value), ERROR_WRONG_AMOUNT);
-
         uint256 ticketId = game.ticketsIssued.add(1);
         game.ticketsIssued = ticketId;
         game.tickets[ticketId] = Ticket(_input, _powerBall, msg.sender);
@@ -107,7 +104,7 @@ contract BWLottery is BWManaged {
         require(_gameTimestampedId != 0 && block.timestamp <= _gameTimestampedId.add(TIME_TO_CHECK_TICKET), ERROR_ACCESS_DENIED);
         Game storage game = games[_gameTimestampedId];
         require(game.ticketsToCategories[_ticketId] == 0, ERROR_ACCESS_DENIED);
-        game.winersCounsPerCategory[_category] = game.winersCounsPerCategory[_category].add(1);
+        game.winnersCounsPerCategory[_category] = game.winnersCounsPerCategory[_category].add(1);
         game.ticketsToCategories[_ticketId] = _category;
 
         emit WinnerLogged(_gameTimestampedId, _ticketId, _category);
@@ -168,7 +165,7 @@ contract BWLottery is BWManaged {
     function getResultsByTicketId(uint256 _gameTimestampedId, uint256 _ticketId) public view returns (uint256, uint256) {
         Game storage game = games[_gameTimestampedId];
         uint256 category = game.ticketsToCategories[_ticketId];
-        return (game.winersCounsPerCategory[category], category);
+        return (game.winnersCounsPerCategory[category], category);
     }
 
     function markTicketAsWithdrawed(uint256 _gameTimestampedId, uint256 _ticketId)

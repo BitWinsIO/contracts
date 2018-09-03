@@ -48,6 +48,8 @@ contract('BWLottery', function (accounts) {
 
             await lottery.purchase([5, 25, 28, 40, 60], 12, {value: web3.toWei('0.0025', 'ether')})
                 .then(Utils.receiptShouldSucceed);
+            await lottery.purchase([5, 25, 80, 40, 60], 12, {value: web3.toWei('0.0025', 'ether')})
+                .then(Utils.receiptShouldFailed).catch(Utils.catchReceiptShouldFailed);
             await lottery.purchase([1, 6, 26, 39, 58], 24, {value: web3.toWei('0.0025', 'ether')})
                 .then(Utils.receiptShouldSucceed);
             await lottery.purchase([5, 25, 46, 50, 70], 12, {value: web3.toWei('0.0025', 'ether')}).then(Utils.receiptShouldFailed).catch(Utils.catchReceiptShouldFailed);
