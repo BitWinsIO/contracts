@@ -8,8 +8,6 @@ contract BWRandomizerTest is BWRandomizer {
     uint256 public testPb;
     uint256[5] public testArray;
 
-    event Debug(string _s, uint256 _v);
-
     constructor(address _management) public BWRandomizer(_management) {
         OAR = OraclizeAddrResolverI(0x6f485C8BF6fc43eA212E93BBF8ce046C7f1cb475);
 

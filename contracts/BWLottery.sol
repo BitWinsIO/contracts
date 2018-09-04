@@ -52,7 +52,6 @@ contract BWLottery is BWManaged {
         createGameInternal(_firstGameStartAt);
     }
 
-
     function purchase(uint256[5] _input, uint256 _powerBall)
         public payable requireContractExistsInRegistry(CONTRACT_CASHIER)
         requireNotContractSender() {
