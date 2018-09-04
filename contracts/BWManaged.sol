@@ -9,7 +9,7 @@ contract BWManaged is Ownable, BWConstants {
 
     BWManagement public management;
 
-    modifier requirePermission(uint8 _permissionBit) {
+    modifier requirePermission(uint256 _permissionBit) {
         require(hasPermission(msg.sender, _permissionBit), ERROR_ACCESS_DENIED);
         _;
     }

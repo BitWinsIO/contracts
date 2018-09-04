@@ -4,10 +4,10 @@ pragma solidity 0.4.24;
 contract BWConstants {
 
     // Permissions bit constants
-    uint8 public constant CAN_RECORD_PURCHASE = 0;
-    uint8 public constant CAN_RECORD_RESULT = 1;
-    uint8 public constant CAN_RECORD_HASH = 2;
-    uint8 public constant CAN_INCREASE_GAME_BALANCE = 3;
+    uint256 public constant CAN_RECORD_PURCHASE = 0;
+    uint256 public constant CAN_RECORD_RESULT = 1;
+    uint256 public constant CAN_RECORD_HASH = 2;
+    uint256 public constant CAN_INCREASE_GAME_BALANCE = 3;
 
     uint256 public constant MIN_NUMBER = 1; // min number on the ball
     uint256 public constant GAME_DURATION = 7 days;

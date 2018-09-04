@@ -88,7 +88,7 @@ contract BWResults is BWManaged {
         uint256 winnersAmount;
         uint256 categoryId;
         (winnersAmount, categoryId) = lotteryContract.getResultsByTicketId(_gameTimestampedId, _ticketId);
-        lotteryContract.markTicketAsWithdrawed(_gameTimestampedId, _ticketId);
+        lotteryContract.markTicketAsWithdrawn(_gameTimestampedId, _ticketId);
         require(winnersAmount > 0, ERROR_NOT_AVAILABLE);
         address ticketOwner = lotteryContract.getTicketOwnerById(_gameTimestampedId, _ticketId);
         uint256 value = gameBalances[_gameTimestampedId].mul(management.payoutsPerCategory(categoryId)).div(100).div(winnersAmount);
