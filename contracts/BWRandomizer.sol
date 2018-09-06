@@ -75,7 +75,6 @@ contract BWRandomizer is BWManaged, usingOraclize {
             string memory string5 = "${[identity] \"}\"}']";
             string memory query = strConcat(query0, string4, string5);
             oraclize_query("nested", query, gasForOraclize);
-            emit LogInfo('Oraclize query was sent, standing by for the answer..');
         }
 
     }

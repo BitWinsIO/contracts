@@ -37,6 +37,7 @@ contract BWCashier is BWManaged {
     ) public BWManaged(_management) {
         proportionAbsMax = _proportionAbsMax;
         for (uint256 i = 0; i < _etherHolders.length; i++) {
+            require(isContract(_etherHolders[i]) == false, ERROR_ACCESS_DENIED);
             require(_etherHolders[i] != address(0), ERROR_ACCESS_DENIED);
             etherHolders[i] = _etherHolders[i];
             percentages[i] = _percentages[i];
@@ -46,7 +47,9 @@ contract BWCashier is BWManaged {
     function recordPurchase(
         uint256 _gameTimestampedId,
         address _contributor
-    ) public payable requirePermission(CAN_RECORD_PURCHASE) requireContractExistsInRegistry(CONTRACT_RESULTS) returns (uint256) {
+    ) public payable
+    requirePermission(CAN_RECORD_PURCHASE)
+    requireContractExistsInRegistry(CONTRACT_RESULTS) returns (uint256) {
         emit LotteryTicketPurchased(_contributor, _gameTimestampedId);
         balances[_contributor] = balances[_contributor].add(msg.value);
         uint256 etherWithdrawed;
@@ -66,15 +69,20 @@ contract BWCashier is BWManaged {
         result.defineGameBalance.value(address(this).balance)(_gameTimestampedId);
     }
 
-    function updateEtherHolderAddress(uint256 _index, address _newAddress)
-        public onlyOwner indexMeetSpecifiedRange(_index) {
+    function updateEtherHolderAddress(
+        uint256 _index,
+        address _newAddress
+    ) public onlyOwner indexMeetSpecifiedRange(_index) {
+        require(isContract(_newAddress) == false, ERROR_ACCESS_DENIED);
         require(_index != APPLICATURE_HOLDER_INDEX, ERROR_ACCESS_DENIED);
         require(_newAddress != address(0), ERROR_ACCESS_DENIED);
         etherHolders[_index] = _newAddress;
     }
 
-    function updateEtherHolderPercentages(uint256 _index, uint256 _newValue)
-        public onlyOwner indexMeetSpecifiedRange(_index)
+    function updateEtherHolderPercentages(
+        uint256 _index,
+        uint256 _newValue
+    ) public onlyOwner indexMeetSpecifiedRange(_index)
         requireNotContractSender() {
         require(_index != APPLICATURE_HOLDER_INDEX, ERROR_ACCESS_DENIED);
         require(_newValue <= proportionAbsMax, ERROR_ACCESS_DENIED);

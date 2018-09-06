@@ -26,6 +26,7 @@ contract BWLottery is BWManaged {
         mapping(uint256 => uint256) results; //combination CategoryKey =>[tikets count
         mapping(uint256 => uint256) winnersCountsPerCategory;
         mapping(uint256 => uint256) ticketsToCategories;
+        mapping(uint256 => bool) ticketPrizeWithdrawn;
 
     }
 
@@ -36,6 +37,7 @@ contract BWLottery is BWManaged {
     }
 
     event WinnerLogged(uint256 gameTimestampedId, uint256 ticketId, uint256 prize);
+
     event TicketBought(
         uint256 gameTimestampedId,
         uint256 ticketId,
@@ -51,8 +53,10 @@ contract BWLottery is BWManaged {
         createGameInternal(_firstGameStartAt);
     }
 
-    function purchase(uint256[5] _input, uint256 _powerBall)
-        public payable requireContractExistsInRegistry(CONTRACT_CASHIER)
+    function purchase(
+        uint256[5] _input,
+        uint256 _powerBall
+    ) public payable requireContractExistsInRegistry(CONTRACT_CASHIER)
         requireNotContractSender() {
         require((management.ticketPrice() == msg.value), ERROR_WRONG_AMOUNT);
         require(activeGame > 0, ERROR_NO_ACTIVE_LOTTERY);
@@ -73,8 +77,11 @@ contract BWLottery is BWManaged {
         game.collectedEthers = game.collectedEthers.add(leftForPrizes);
     }
 
-    function setGameResult(uint256 _gameTimestampedId, uint256[5] _input, uint256 _powerBall)
-        public requireContractExistsInRegistry(CONTRACT_CASHIER)
+    function setGameResult(
+        uint256 _gameTimestampedId,
+        uint256[5] _input,
+        uint256 _powerBall
+    ) public requireContractExistsInRegistry(CONTRACT_CASHIER)
         canCallOnlyRegisteredContract(CONTRACT_RANDOMIZER) {
         require(activeGame > 0, ERROR_ACCESS_DENIED);
         require(_gameTimestampedId.add(GAME_DURATION) <= block.timestamp, ERROR_ACCESS_DENIED);
@@ -97,12 +104,19 @@ contract BWLottery is BWManaged {
         createGameInternal(_startTime);
     }
 
-    function saveClaim(uint256 _gameTimestampedId, uint256 _category, uint256 _ticketId)
-        public requireContractExistsInRegistry(CONTRACT_RESULTS)
-        canCallOnlyRegisteredContract(CONTRACT_RESULTS) {
-        require(_gameTimestampedId != 0 && block.timestamp <= _gameTimestampedId.add(TIME_TO_CHECK_TICKET), ERROR_ACCESS_DENIED);
+    function saveClaim(
+        uint256 _gameTimestampedId,
+        uint256 _category,
+        uint256 _ticketId
+    )public requireContractExistsInRegistry(CONTRACT_RESULTS) canCallOnlyRegisteredContract(CONTRACT_RESULTS) {
+        require(
+            _gameTimestampedId != 0
+            && block.timestamp <= _gameTimestampedId.add(TIME_TO_CHECK_TICKET), ERROR_ACCESS_DENIED
+        );
+
         Game storage game = games[_gameTimestampedId];
         require(game.ticketsToCategories[_ticketId] == 0, ERROR_ACCESS_DENIED);
+        require(game.ticketPrizeWithdrawn[_ticketId] == false, ERROR_ACCESS_DENIED);
         game.winnersCountsPerCategory[_category] = game.winnersCountsPerCategory[_category].add(1);
         game.ticketsToCategories[_ticketId] = _category;
 
@@ -173,8 +187,9 @@ contract BWLottery is BWManaged {
         uint256 _gameTimestampedId,
         uint256 _ticketId
     ) public canCallOnlyRegisteredContract(CONTRACT_RESULTS) {
+        require(game.ticketPrizeWithdrawn[_ticketId] == false, ERROR_ACCESS_DENIED);
         Game storage game = games[_gameTimestampedId];
-        game.ticketsToCategories[_ticketId] = 0;
+        game.ticketPrizeWithdrawn[_ticketId] = true;
     }
 
     function createGameInternal(uint256 _startTime) internal {
@@ -184,16 +199,4 @@ contract BWLottery is BWManaged {
         activeGame = _startTime;
     }
 
-    function insertionSortMemory(uint256[5] a) public pure returns (uint256[5]) {
-        for (uint256 i = 0; i < a.length; i++) {
-            uint256 j = i;
-            while (j > 0 && a[j] < a[j - 1]) {
-                uint256 temp = a[j];
-                a[j] = a[j - 1];
-                a[j - 1] = temp;
-                j--;
-            }
-        }
-        return a;
-    }
 }

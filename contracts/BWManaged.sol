@@ -39,18 +39,6 @@ contract BWManaged is Ownable, BWConstants {
         management = BWManagement(_management);
     }
 
-    function hasPermission(address _subject, uint256 _permissionBit) internal view returns (bool) {
-        return management.permissions(_subject, _permissionBit);
-    }
-
-    function isContract(address _addr) private view returns (bool) {
-        uint32 size;
-        assembly {
-            size := extcodesize(_addr)
-        }
-        return (size > 0);
-    }
-
     function insertionSortMemory(uint256[5] a) public pure returns (uint256[5]) {
         for (uint256 i = 0; i < a.length; i++) {
             uint256 j = i;
@@ -62,5 +50,17 @@ contract BWManaged is Ownable, BWConstants {
             }
         }
         return a;
+    }
+
+    function hasPermission(address _subject, uint256 _permissionBit) internal view returns (bool) {
+        return management.permissions(_subject, _permissionBit);
+    }
+
+    function isContract(address _addr) internal view returns (bool) {
+        uint32 size;
+        assembly {
+            size := extcodesize(_addr)
+        }
+        return (size > 0);
     }
 }
