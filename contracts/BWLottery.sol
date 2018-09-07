@@ -108,7 +108,7 @@ contract BWLottery is BWManaged {
         uint256 _gameTimestampedId,
         uint256 _category,
         uint256 _ticketId
-    )public requireContractExistsInRegistry(CONTRACT_RESULTS) canCallOnlyRegisteredContract(CONTRACT_RESULTS) {
+    ) public requireContractExistsInRegistry(CONTRACT_RESULTS) canCallOnlyRegisteredContract(CONTRACT_RESULTS) {
         require(
             _gameTimestampedId != 0
             && block.timestamp <= _gameTimestampedId.add(TIME_TO_CHECK_TICKET), ERROR_ACCESS_DENIED
